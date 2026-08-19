@@ -914,8 +914,8 @@ function htmlSemana(){
 /* tira pequena con los premios que le quedan por canjear y la racha */
 function logros(n){
   var pendientes = premiosDe(n.id, "ganado").length, dias = racha(n.id), trozos = [];
-  if (pendientes) trozos.push('<button class="logro premio" type="button" data-premios="' + n.id + '">🎁 ' + pendientes + (pendientes > 1 ? " premios" : " premio") + ' por dar</button>');
-  if (dias >= 2) trozos.push('<span class="logro">🔥 ' + dias + ' días sin castigo</span>');
+  if (pendientes) trozos.push('<button class="logro premio" type="button" data-premios="' + n.id + '">🎁 ' + pendientes + ' por dar</button>');
+  if (dias >= 2) trozos.push('<span class="logro">🔥 ' + dias + ' días</span>');
   return trozos.length ? '<div class="logros">' + trozos.join("") + '</div>' : "";
 }
 var escaparateAbierto = false;

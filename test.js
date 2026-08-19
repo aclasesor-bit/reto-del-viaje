@@ -351,7 +351,7 @@ async function esperarA(fn, ms, cada) {
   console.log('-- premios y rachas');
   const chipsPremio = n => tarjeta(n).locator('[data-premios]');
   ok('al llegar al objetivo se apunta un premio', await esperarA(async () => (await chipsPremio('paula').count()) === 1, 6000));
-  ok('el chip dice cuantos premios lleva', /1 premio por dar/.test(await chipsPremio('paula').innerText()));
+  ok('el chip dice cuantos premios lleva', /1 por dar/.test(await chipsPremio('paula').innerText()));
   ok('quien no ha llegado no tiene premio', (await chipsPremio('valeria').count()) === 0);
   ok('el premio llega al servidor', await esperarA(async () => {
     const d = await (await fetch(API + '/f/' + FAMILIA)).json();
@@ -507,7 +507,7 @@ async function esperarA(fn, ms, cada) {
   /* racha: dias seguidos sin castigo, con la semana ya sembrada */
   await pagS.locator('.pest[data-vista="hoy"]').click();
   await pagS.waitForTimeout(300);
-  const chipRacha = pagS.locator('[data-tarjeta="valeria"] .logro', { hasText: 'sin castigo' });
+  const chipRacha = pagS.locator('[data-tarjeta="valeria"] .logro', { hasText: 'días' });
   if (dias.length >= 2) {
     ok('Valeria, que nunca se quedo sin corazones, luce racha',
        await esperarA(async () => (await chipRacha.count()) === 1, 8000));
@@ -516,7 +516,7 @@ async function esperarA(fn, ms, cada) {
          new RegExp('🔥 ' + dias.length + ' días').test(await chipRacha.innerText()),
          await chipRacha.innerText());
     }
-    const chipAle = pagS.locator('[data-tarjeta="alejandra"] .logro', { hasText: 'sin castigo' });
+    const chipAle = pagS.locator('[data-tarjeta="alejandra"] .logro', { hasText: 'días' });
     ok('Alejandra, castigada el lunes, no arrastra la racha entera',
        (await chipAle.count()) === 0 || !new RegExp('🔥 ' + dias.length + ' días').test(await chipAle.innerText()));
   } else {
