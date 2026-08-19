@@ -27,7 +27,7 @@ const recorta = (s, n) => String(s == null ? '' : s).slice(0, n);
 
 function ficheroDe(familia) { return path.join(DATOS, familia + '.json'); }
 
-function docVacio() { return { v: 1, config: null, fotos: {}, dias: {}, ts: 0 }; }
+function docVacio() { return { v: 1, config: null, fotos: {}, premios: {}, dias: {}, ts: 0 }; }
 
 function leer(familia) {
   try {
@@ -35,6 +35,7 @@ function leer(familia) {
     if (!doc || typeof doc !== 'object') return docVacio();
     doc.dias = doc.dias && typeof doc.dias === 'object' ? doc.dias : {};
     doc.fotos = doc.fotos && typeof doc.fotos === 'object' ? doc.fotos : {};
+    doc.premios = doc.premios && typeof doc.premios === 'object' ? doc.premios : {};
     return doc;
   } catch (e) { return docVacio(); }
 }
@@ -94,6 +95,22 @@ function fusionar(doc, cambios) {
       const actual = doc.fotos[nina];
       if (!actual || ts > (Number(actual.ts) || 0)) doc.fotos[nina] = { img: img, ts: ts };
     });
+  }
+  /* premios ganados: una clave "nina|dia" por premio, gana la marca de tiempo mas nueva */
+  if (cambios.premios && typeof cambios.premios === 'object') {
+    doc.premios = doc.premios || {};
+    Object.keys(cambios.premios).slice(0, 400).forEach(k => {
+      const p = cambios.premios[k];
+      if (!p || typeof p !== 'object') return;
+      const clave = recorta(k, 40);
+      if (!/^[a-z0-9-]{1,24}\|\d{4}-\d{2}-\d{2}$/.test(clave)) return;
+      if (['ganado', 'entregado', 'anulado'].indexOf(p.estado) < 0) return;
+      const ts = Number(p.ts) || 0;
+      const actual = doc.premios[clave];
+      if (!actual || ts > (Number(actual.ts) || 0)) doc.premios[clave] = { estado: p.estado, ts: ts };
+    });
+    const claves = Object.keys(doc.premios).sort();
+    while (claves.length > 400) delete doc.premios[claves.shift()];
   }
   const dia = d => doc.dias[d] || (doc.dias[d] = { eventos: [], borrados: [] });
 

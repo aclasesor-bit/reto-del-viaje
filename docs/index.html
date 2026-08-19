@@ -264,6 +264,54 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
   width:100%;min-height:56px;margin-top:10px;border-radius:16px;border:1.5px solid var(--linea);
   background:#faf8f6;font-size:1rem;font-weight:700;color:var(--suave);font-family:inherit;
 }
+/* ---------- logros ---------- */
+.logros{display:flex;flex-wrap:wrap;gap:7px;margin:-2px 0 11px}
+.logro{
+  display:inline-flex;align-items:center;min-height:44px;padding:6px 14px;border-radius:999px;
+  background:#f5f2ee;border:1.5px solid var(--linea);color:var(--suave);
+  font-family:inherit;font-size:.86rem;font-weight:800;
+}
+.logro.premio{background:#fff6e6;border-color:#f3dcb0;color:#8a5a10}
+.logro.premio:active{background:#fdedd0}
+
+/* ---------- pantalla para ellas ---------- */
+#escaparate{
+  position:fixed;inset:0;z-index:70;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:linear-gradient(170deg,var(--bg1) 0%,var(--bg2) 100%);
+  padding:calc(env(safe-area-inset-top) + 16px) 14px calc(env(safe-area-inset-bottom) + 96px);
+}
+#escaparate[hidden]{display:none}
+.esc-titulo{margin:0 0 14px;text-align:center;font-size:1.15rem;font-weight:800;letter-spacing:-.02em}
+.esc-nina{
+  background:#fff;border-radius:24px;box-shadow:var(--sombra);border:1px solid rgba(233,227,220,.9);
+  padding:16px;margin-bottom:14px;display:flex;gap:14px;align-items:center;
+  border-left:7px solid var(--acento);
+}
+.esc-nina.castigada{background:#fff6f5;border-color:#f6cfcc}
+.esc-nina.premiada{background:#f6fdf9;border-color:#c9ecd9}
+.esc-foto{
+  width:84px;height:84px;flex:0 0 84px;border-radius:50%;background:var(--acento);
+  color:#fff;font-size:2rem;font-weight:800;display:flex;align-items:center;justify-content:center;
+  background-size:cover;background-position:center top;
+}
+.esc-foto.confoto{color:transparent;box-shadow:0 0 0 3px var(--acento),0 0 0 5px #fff}
+.esc-datos{flex:1;min-width:0}
+.esc-nombre{font-size:1.45rem;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
+.esc-pips{font-size:1.5rem;line-height:1.35;word-break:break-word}
+.esc-pips .vacio{filter:grayscale(1);opacity:.24}
+.esc-estado{margin-top:6px;font-size:1rem;font-weight:800}
+.esc-estado.mal{color:var(--rojo-osc)}
+.esc-estado.bien{color:var(--verde-osc)}
+.esc-estado.normal{color:var(--suave);font-weight:700;font-size:.9rem}
+.esc-salir{
+  position:fixed;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom) + 14px);
+  max-width:612px;margin:0 auto;min-height:58px;border-radius:18px;border:1.5px solid var(--linea);
+  background:#fff;color:var(--suave);font-size:1rem;font-weight:800;font-family:inherit;
+  overflow:hidden;box-shadow:var(--sombra);
+}
+.esc-salir .relleno{position:absolute;left:0;top:0;bottom:0;width:0;background:#eee8e1}
+.esc-salir.pulsando .relleno{width:100%;transition:width .9s linear}
+.esc-salir .texto{position:relative}
 #confeti{position:fixed;inset:0;z-index:80;pointer-events:none}
 #confeti[hidden]{display:none}
 @media (prefers-reduced-motion: reduce){
@@ -280,7 +328,8 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 <body>
 
 <header class="top">
-  <h1>El Reto del Viaje <small>Valeria · Alejandra · Paula</small></h1>
+  <h1>El Reto del Viaje</h1>
+  <button class="icono" id="btnEscaparate" type="button" aria-label="Enseñárselo a ellas">👀</button>
   <button class="icono" id="btnSonido" type="button" aria-label="Sonido">🔊</button>
   <button class="icono" id="btnAjustes" type="button" aria-label="Ajustes">⚙️</button>
 </header>
@@ -314,6 +363,12 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
     <p class="firma" id="firma"></p>
   </div>
 </div>
+
+<section id="escaparate" hidden aria-label="Pantalla para las niñas">
+  <h2 class="esc-titulo">🏆 ¿Cómo vamos hoy?</h2>
+  <div id="escaparateLista"></div>
+  <button class="esc-salir" id="btnSalirEscaparate" type="button"><span class="relleno"></span><span class="texto">Mantén pulsado para salir</span></button>
+</section>
 
 <canvas id="confeti" hidden></canvas>
 
@@ -380,9 +435,9 @@ function semanaLaboral(){
 }
 
 /* ---------------- estado ---------------- */
-function docVacio(){ return { v:1, config:null, fotos:{}, dias:{}, ts:0 }; }
+function docVacio(){ return { v:1, config:null, fotos:{}, premios:{}, dias:{}, ts:0 }; }
 function localVacio(){
-  return { familia:null, sonido:true, vista:"hoy", doc:docVacio(), cola:{ nuevos:[], borrados:[], config:null, fotos:null } };
+  return { familia:null, sonido:true, vista:"hoy", doc:docVacio(), cola:{ nuevos:[], borrados:[], config:null, fotos:null, premios:null } };
 }
 function cfg(){
   var c = local.doc.config || {};
@@ -432,6 +487,58 @@ function miniatura(fichero, hecho){
   };
   lector.onerror = function(){ hecho(null); };
   lector.readAsDataURL(fichero);
+}
+function clavePremio(nina, d){ return nina + "|" + d; }
+function estadoPremio(nina, d){
+  var p = (local.doc.premios || {})[clavePremio(nina, d)];
+  return (p && p.estado) || "";
+}
+function ponerPremio(nina, d, estado){
+  var reg = { estado: estado, ts: Date.now() };
+  local.doc.premios = local.doc.premios || {};
+  local.doc.premios[clavePremio(nina, d)] = reg;
+  local.cola.premios = local.cola.premios || {};
+  local.cola.premios[clavePremio(nina, d)] = reg;
+  red = "pendiente";
+}
+/* el premio de hoy se apunta solo en cuanto llega al objetivo, y se cae si se deshace;
+   los de dias anteriores no se tocan: ya estan ganados */
+function reconciliarPremios(){
+  var c = cfg(), d = hoy(), cambio = false;
+  NINAS.forEach(function(n){
+    var m = marcador(d, n.id, c), e = estadoPremio(n.id, d);
+    if (m.premiada && e !== "ganado" && e !== "entregado"){ ponerPremio(n.id, d, "ganado"); cambio = true; }
+    else if (!m.premiada && e === "ganado" && tieneEventos(d, n.id)){
+      /* se cae solo si ha sido un deshacer; si se ha vaciado el dia entero, el premio se queda */
+      ponerPremio(n.id, d, "anulado"); cambio = true;
+    }
+  });
+  if (cambio){ guardar(); pedirSync(); }
+  return cambio;
+}
+function tieneEventos(d, nina){
+  return eventosDe(d).some(function(e){ return e.nina === nina; });
+}
+function premiosDe(nina, estado){
+  var p = local.doc.premios || {}, salida = [];
+  Object.keys(p).forEach(function(k){
+    var trozos = k.split("|");
+    if (trozos[0] !== nina) return;
+    if (p[k].estado !== estado) return;
+    salida.push({ clave:k, dia:trozos[1] });
+  });
+  return salida.sort(function(a,b){ return a.dia < b.dia ? 1 : -1; });
+}
+/* dias seguidos, de los que se ha jugado, sin quedarse sin corazones */
+function racha(nina){
+  var c = cfg(), d = hoy();
+  var dias = Object.keys(local.doc.dias).filter(function(f){ return f <= d && eventosDe(f).length > 0; }).sort();
+  var n = 0;
+  for (var i = dias.length - 1; i >= 0; i--){
+    if (marcador(dias[i], nina, c).castigada) break;
+    n++;
+  }
+  return n;
 }
 function dia(d, crear){
   var x = local.doc.dias[d];
@@ -489,6 +596,7 @@ function cargar(){
   var base = localVacio();
   g.doc = (g.doc && typeof g.doc === "object" && g.doc.dias) ? g.doc : base.doc;
   g.doc.fotos = (g.doc.fotos && typeof g.doc.fotos === "object") ? g.doc.fotos : {};
+  g.doc.premios = (g.doc.premios && typeof g.doc.premios === "object") ? g.doc.premios : {};
   g.cola = (g.cola && typeof g.cola === "object") ? g.cola : base.cola;
   g.cola.nuevos = Array.isArray(g.cola.nuevos) ? g.cola.nuevos : [];
   g.cola.borrados = Array.isArray(g.cola.borrados) ? g.cola.borrados : [];
@@ -508,7 +616,7 @@ function pedirSync(retraso){
 }
 function hayPendiente(){
   var c = local.cola;
-  return !!(c.nuevos.length || c.borrados.length || c.config || c.fotos);
+  return !!(c.nuevos.length || c.borrados.length || c.config || c.fotos || c.premios);
 }
 function aplicarCola(){
   local.cola.borrados.forEach(function(b){
@@ -527,13 +635,17 @@ function aplicarCola(){
     local.doc.fotos = local.doc.fotos || {};
     Object.keys(local.cola.fotos).forEach(function(k){ local.doc.fotos[k] = local.cola.fotos[k]; });
   }
+  if (local.cola.premios){
+    local.doc.premios = local.doc.premios || {};
+    Object.keys(local.cola.premios).forEach(function(k){ local.doc.premios[k] = local.cola.premios[k]; });
+  }
 }
 function sincronizar(){
   if (!local.familia || !window.fetch) return;
   if (sincronizando){ otraVuelta = true; return; }   /* que no se pierda lo apuntado mientras se enviaba lo anterior */
   var c = local.cola;
-  var nN = c.nuevos.length, nB = c.borrados.length, conf = c.config, fotos = c.fotos;
-  var manda = nN || nB || conf || fotos;
+  var nN = c.nuevos.length, nB = c.borrados.length, conf = c.config, fotos = c.fotos, premios = c.premios;
+  var manda = nN || nB || conf || fotos || premios;
   sincronizando = true;
   if (manda) { red = "enviando"; pintarSync(); }
   var url = API + "/f/" + encodeURIComponent(local.familia);
@@ -541,7 +653,7 @@ function sincronizar(){
     ? fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nuevos: c.nuevos.slice(0, nN), borrados: c.borrados.slice(0, nB), config: conf || undefined, fotos: fotos || undefined })
+        body: JSON.stringify({ nuevos: c.nuevos.slice(0, nN), borrados: c.borrados.slice(0, nB), config: conf || undefined, fotos: fotos || undefined, premios: premios || undefined })
       })
     : fetch(url, { cache: "no-store" });
 
@@ -553,6 +665,7 @@ function sincronizar(){
       c.borrados.splice(0, nB);
       if (conf && c.config === conf) c.config = null;
       if (fotos && c.fotos === fotos) c.fotos = null;
+      if (premios && c.premios === premios) c.premios = null;
       local.doc = doc;
       aplicarCola();
       red = hayPendiente() ? "pendiente" : "ok";
@@ -661,6 +774,7 @@ var cont = document.getElementById("ninas");
 var efectos = {};
 
 function pintar(){
+  reconciliarPremios();
   var c = cfg(), d = hoy();
   cont.innerHTML = NINAS.map(function(n){
     var m = marcador(d, n.id, c);
@@ -695,7 +809,7 @@ function pintar(){
         '<div class="fila" data-corazones>' + corazones + '<span class="cuenta" data-cuenta-corazones>' + m.corazones + ' / ' + c.oportunidades + '</span></div>' +
         '<div class="fila" data-estrellas>' + estrellas + '<span class="cuenta" data-cuenta-estrellas>' + m.estrellas + ' / ' + c.objetivo + '</span></div>' +
       '</div>' +
-      aviso +
+      aviso + logros(n) +
       '<div class="acciones">' +
         '<button class="grande bien" type="button" data-accion="bien" data-nina="' + n.id + '"><span class="em">🟢</span> SE HA PORTADO BIEN</button>' +
         '<button class="grande mal" type="button" data-accion="mal" data-nina="' + n.id + '"' + (m.castigada ? " disabled" : "") + '><span class="em">🔴</span> SE HA PORTADO MAL</button>' +
@@ -706,6 +820,7 @@ function pintar(){
   efectos = {};
   pintarRanking();
   pintarHistorial();
+  pintarEscaparate();
   pintarSync();
   document.getElementById("btnSonido").textContent = local.sonido ? "🔊" : "🔇";
   document.getElementById("firma").textContent = "Día " + d + " · se guarda en los dos móviles";
@@ -793,6 +908,45 @@ function htmlSemana(){
                '<span class="marca"><span>⭐ ' + x.estrellas + '</span><span>💔 ' + x.perdidos + '</span></span>' +
              '</button>' +
              '<div class="dias">' + chips + '</div>' +
+           '</div>';
+  }).join("");
+}
+/* tira pequena con los premios que le quedan por canjear y la racha */
+function logros(n){
+  var pendientes = premiosDe(n.id, "ganado").length, dias = racha(n.id), trozos = [];
+  if (pendientes) trozos.push('<button class="logro premio" type="button" data-premios="' + n.id + '">🎁 ' + pendientes + (pendientes > 1 ? " premios" : " premio") + ' por dar</button>');
+  if (dias >= 2) trozos.push('<span class="logro">🔥 ' + dias + ' días sin castigo</span>');
+  return trozos.length ? '<div class="logros">' + trozos.join("") + '</div>' : "";
+}
+var escaparateAbierto = false;
+function abrirEscaparate(){ escaparateAbierto = true; document.getElementById("escaparate").hidden = false; document.body.style.overflow = "hidden"; pintarEscaparate(); }
+function cerrarEscaparate(){ escaparateAbierto = false; document.getElementById("escaparate").hidden = true; document.body.style.overflow = ""; }
+function pintarEscaparate(){
+  if (!escaparateAbierto) return;
+  var c = cfg(), d = hoy();
+  document.getElementById("escaparateLista").innerHTML = NINAS.map(function(n){
+    var m = marcador(d, n.id, c), i, pips = "", estrellas = "";
+    for (i=0;i<c.oportunidades;i++) pips += '<span class="' + (i < m.corazones ? "" : "vacio") + '">' + (i < m.corazones ? "❤️" : "🖤") + '</span>';
+    for (i=0;i<Math.max(c.objetivo, m.estrellas);i++) estrellas += '<span class="' + (i < m.estrellas ? "" : "vacio") + '">⭐</span>';
+    var pendientes = premiosDe(n.id, "ganado").length, dias = racha(n.id), estado;
+    if (m.castigada) estado = '<div class="esc-estado mal">⛔ ' + esc(c.textoCastigo).toUpperCase() + '</div>';
+    else if (m.premiada) estado = '<div class="esc-estado bien">🎁 ¡PREMIO! ' + esc(c.textoRecompensa) + '</div>';
+    else {
+      var trozos = [];
+      if (pendientes) trozos.push("🎁 " + pendientes + (pendientes > 1 ? " premios" : " premio"));
+      if (dias >= 2) trozos.push("🔥 " + dias + " días sin castigo");
+      trozos.push("te faltan " + Math.max(0, c.objetivo - m.estrellas) + " ⭐");
+      estado = '<div class="esc-estado normal">' + trozos.join(" · ") + '</div>';
+    }
+    var foto = fotoDe(n.id);
+    return '<div class="esc-nina' + (m.castigada ? " castigada" : m.premiada ? " premiada" : "") + '" style="--acento:' + n.acento + '">' +
+             '<span class="esc-foto' + (foto ? " confoto" : "") + '"' + (foto ? ' style="background-image:url(' + foto + ')"' : '') + '>' + n.nombre.charAt(0) + '</span>' +
+             '<div class="esc-datos">' +
+               '<div class="esc-nombre">' + n.nombre + '</div>' +
+               '<div class="esc-pips">' + pips + '</div>' +
+               '<div class="esc-pips">' + estrellas + '</div>' +
+               estado +
+             '</div>' +
            '</div>';
   }).join("");
 }
@@ -895,6 +1049,7 @@ function abrirAjustes(){
     '<div class="campo"><label for="cfgCa">⛔ Texto del castigo</label><input id="cfgCa" type="text" maxlength="30" value="' + esc(c.textoCastigo) + '"></div>' +
     '<button class="grande bien" type="button" id="cfgGuardar">GUARDAR</button>' +
     '<button class="secundario" type="button" id="cfgFotos">📷 Fotos de las niñas</button>' +
+    '<button class="secundario" type="button" id="cfgPremios">🎁 Premios ganados</button>' +
     '<button class="secundario" type="button" id="cfgCompartir">📲 Compartir con el otro móvil</button>' +
     '<button class="secundario" type="button" data-cerrar>Cancelar</button>'
   );
@@ -909,6 +1064,7 @@ function abrirAjustes(){
   });
   document.getElementById("cfgCompartir").addEventListener("click", abrirCompartir);
   document.getElementById("cfgFotos").addEventListener("click", abrirFotos);
+  document.getElementById("cfgPremios").addEventListener("click", abrirPremios);
 }
 function abrirFotos(){
   abrirHoja('' +
@@ -987,6 +1143,30 @@ function conectarCon(codigo){
   red = "pendiente";
   guardar(); pintar(); sincronizar();
 }
+function abrirPremios(){
+  var filas = NINAS.map(function(n){
+    var pendientes = premiosDe(n.id, "ganado"), dados = premiosDe(n.id, "entregado").length;
+    var lineas = pendientes.map(function(p){
+      return '<div class="fotofila" style="--acento:' + n.acento + '">' +
+               avatar(n) +
+               '<span class="quien">' + n.nombre + '<br><small style="font-weight:600;color:var(--suave)">🎁 ganado el ' + esc(p.dia) + '</small></span>' +
+               '<button class="quitar" type="button" data-entregado="' + esc(p.clave) + '" style="min-width:auto;padding:0 14px;font-weight:700">✅ Ya se lo dimos</button>' +
+             '</div>';
+    }).join("");
+    if (!pendientes.length){
+      lineas = '<div class="fotofila" style="--acento:' + n.acento + '">' + avatar(n) +
+               '<span class="quien">' + n.nombre + '<br><small style="font-weight:600;color:var(--suave)">sin premios pendientes' +
+               (dados ? " · " + dados + (dados > 1 ? " entregados" : " entregado") : "") + '</small></span></div>';
+    }
+    return lineas;
+  }).join("");
+  abrirHoja('' +
+    '<h2>🎁 Premios ganados</h2>' +
+    '<p class="sub">Cada día que llega a las estrellas del objetivo se le apunta un premio. No se pierde al empezar un día nuevo: se queda aquí hasta que se lo deis.</p>' +
+    filas +
+    '<button class="grande bien" type="button" data-cerrar style="margin-top:16px">LISTO</button>'
+  );
+}
 function confirmarNuevoDia(){
   abrirHoja('' +
     '<h2>🔄 ¿Empezar un nuevo día?</h2>' +
@@ -1016,6 +1196,15 @@ document.addEventListener("click", function(e){
   if (b.id === "btnNuevoDia") { confirmarNuevoDia(); return; }
   if (b.id === "btnAjustes")  { abrirAjustes(); return; }
   if (b.id === "btnSync")     { abrirCompartir(); return; }
+  if (b.id === "btnEscaparate"){ abrirEscaparate(); return; }
+  if (b.getAttribute("data-premios")) { abrirPremios(); return; }
+  var entregado = b.getAttribute("data-entregado");
+  if (entregado){
+    var trozos = entregado.split("|");
+    ponerPremio(trozos[0], trozos[1], "entregado");
+    guardar(); pintar(); pedirSync(0); abrirPremios();
+    return;
+  }
   var quitar = b.getAttribute("data-quitarfoto");
   if (quitar){ guardarFoto(quitar, ""); abrirFotos(); return; }
   if (b.id === "btnSonido")   {
@@ -1025,6 +1214,20 @@ document.addEventListener("click", function(e){
     return;
   }
 });
+
+(function salidaDelEscaparate(){
+  var b = document.getElementById("btnSalirEscaparate"), t = null;
+  function arranca(e){
+    if (e && e.cancelable) e.preventDefault();
+    b.classList.add("pulsando");
+    clearTimeout(t);
+    t = setTimeout(function(){ b.classList.remove("pulsando"); cerrarEscaparate(); }, 900);
+  }
+  function suelta(){ clearTimeout(t); b.classList.remove("pulsando"); }
+  b.addEventListener("pointerdown", arranca);
+  ["pointerup","pointerleave","pointercancel"].forEach(function(ev){ b.addEventListener(ev, suelta); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && escaparateAbierto) cerrarEscaparate(); });
+})();
 
 var diaPintado = hoy();
 function repasar(){

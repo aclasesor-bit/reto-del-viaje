@@ -347,6 +347,48 @@ async function esperarA(fn, ms, cada) {
   await pag.waitForTimeout(300);
   ok('al quitarla vuelve la inicial', !((await tarjeta('paula').locator('.inicial').getAttribute('style')) || '').match(/data:image/));
 
+  /* 14 ter. premios que no se pierden y rachas */
+  console.log('-- premios y rachas');
+  const chipsPremio = n => tarjeta(n).locator('[data-premios]');
+  ok('al llegar al objetivo se apunta un premio', await esperarA(async () => (await chipsPremio('paula').count()) === 1, 6000));
+  ok('el chip dice cuantos premios lleva', /1 premio por dar/.test(await chipsPremio('paula').innerText()));
+  ok('quien no ha llegado no tiene premio', (await chipsPremio('valeria').count()) === 0);
+  ok('el premio llega al servidor', await esperarA(async () => {
+    const d = await (await fetch(API + '/f/' + FAMILIA)).json();
+    return d.premios && d.premios['paula|' + hoyClave] && d.premios['paula|' + hoyClave].estado === 'ganado';
+  }, 12000));
+
+  /* deshacer hasta bajar del objetivo: el premio se cae */
+  for (let i = 0; i < 8 && (await estrellas('paula')) >= 5; i++) await pulsar('paula', 'deshacer');
+  ok('si deshago y baja del objetivo, el premio se cae',
+     await esperarA(async () => (await chipsPremio('paula').count()) === 0, 6000),
+     'Paula tiene ' + (await estrellas('paula')) + ' estrellas');
+  await pulsar('paula', 'bien');
+  ok('y si vuelve a llegar, se apunta otra vez',
+     await esperarA(async () => (await chipsPremio('paula').count()) === 1, 6000),
+     'Paula tiene ' + (await estrellas('paula')) + ' estrellas');
+
+  /* entregar el de Alejandra, y dejar el de Paula pendiente para la prueba del nuevo dia */
+  for (let i = 0; i < 8 && (await estrellas('alejandra')) < 5; i++) await pulsar('alejandra', 'bien');
+  ok('Alejandra tambien gana el suyo', await esperarA(async () => (await chipsPremio('alejandra').count()) === 1, 6000));
+  await chipsPremio('alejandra').click();
+  await pag.waitForTimeout(350);
+  ok('el chip abre el panel de premios', await pag.locator('[data-entregado]').first().isVisible());
+  ok('el panel dice de que dia es cada premio', /ganado el/.test(await pag.locator('.hoja').innerText()));
+  ok('en el panel estan los dos premios pendientes', (await pag.locator('[data-entregado]').count()) === 2);
+  await pag.locator('[data-entregado="alejandra|' + hoyClave + '"]').click();
+  await pag.waitForTimeout(500);
+  ok('al marcarlo como entregado deja de estar pendiente', (await pag.locator('[data-entregado]').count()) === 1);
+  ok('y queda constancia de que se entrego', /entregado/.test(await pag.locator('.hoja').innerText()));
+  await pag.locator('[data-cerrar]').first().click();
+  await pag.waitForTimeout(300);
+  ok('el chip desaparece de la tarjeta al entregarlo', (await chipsPremio('alejandra').count()) === 0);
+  await pulsar('alejandra', 'bien');
+  await pag.waitForTimeout(300);
+  ok('no se apunta otro premio el mismo dia si ya se lo dieron', (await chipsPremio('alejandra').count()) === 0);
+  ok('el de Paula sigue pendiente', (await chipsPremio('paula').count()) === 1);
+
+
   /* 15. ajustes */
   console.log('-- ajustes');
   await pag.locator('#btnAjustes').click();
@@ -386,6 +428,8 @@ async function esperarA(fn, ms, cada) {
   ok('se borra el historial', (await pag.locator('#historial .vacio').count()) === 1);
   const guardado = await pag.evaluate(() => JSON.parse(localStorage.getItem('reto-del-viaje-v2')));
   ok('se mantiene la configuracion', guardado.doc.config.oportunidades === 3 && guardado.doc.config.textoRecompensa === 'Helado doble');
+  ok('EL PREMIO NO SE PIERDE al empezar un dia nuevo', (await tarjeta('paula').locator('[data-premios]').count()) === 1,
+     'chips de premio: ' + (await tarjeta('paula').locator('[data-premios]').count()));
   ok('el borrado del dia tambien llega al servidor', await esperarA(async () => {
     const d = await (await fetch(API + '/f/' + FAMILIA)).json();
     const dh = d.dias[hoyClave] || { eventos: [] };
@@ -460,7 +504,67 @@ async function esperarA(fn, ms, cada) {
     await pagS.waitForTimeout(600);
     return /semana/i.test(await pagS.locator('#tituloRanking').innerText());
   })());
+  /* racha: dias seguidos sin castigo, con la semana ya sembrada */
+  await pagS.locator('.pest[data-vista="hoy"]').click();
+  await pagS.waitForTimeout(300);
+  const chipRacha = pagS.locator('[data-tarjeta="valeria"] .logro', { hasText: 'sin castigo' });
+  if (dias.length >= 2) {
+    ok('Valeria, que nunca se quedo sin corazones, luce racha',
+       await esperarA(async () => (await chipRacha.count()) === 1, 8000));
+    if (await chipRacha.count()) {
+      ok('la racha cuenta los ' + dias.length + ' dias jugados',
+         new RegExp('🔥 ' + dias.length + ' días').test(await chipRacha.innerText()),
+         await chipRacha.innerText());
+    }
+    const chipAle = pagS.locator('[data-tarjeta="alejandra"] .logro', { hasText: 'sin castigo' });
+    ok('Alejandra, castigada el lunes, no arrastra la racha entera',
+       (await chipAle.count()) === 0 || !new RegExp('🔥 ' + dias.length + ' días').test(await chipAle.innerText()));
+  } else {
+    ok('hoy es lunes: todavia no hay racha que ensenar', (await chipRacha.count()) === 0);
+  }
   await pagS.close(); await ctxS.close();
+
+  /* 17 bis. pantalla para las ninas */
+  console.log('-- pantalla para ellas');
+  await pag.locator('#btnEscaparate').click();
+  await pag.waitForTimeout(400);
+  const esc = pag.locator('#escaparate');
+  ok('se abre la pantalla para ellas', await esc.isVisible());
+  ok('salen las tres', (await esc.locator('.esc-nina').count()) === 3);
+  ok('con sus corazones y sus estrellas',
+     (await esc.locator('.esc-nina').first().locator('.esc-pips').count()) === 2);
+  ok('NO hay ningun boton de sumar o restar dentro',
+     (await esc.locator('[data-accion]').count()) === 0);
+  const antesToque = await pag.evaluate(() => JSON.stringify(window.__reto.marcador(new Date().toISOString().slice(0,10), 'valeria')));
+  await esc.locator('.esc-nina').first().click({ position: { x: 60, y: 40 } });
+  await esc.locator('.esc-nina').nth(1).click();
+  await pag.waitForTimeout(300);
+  const despuesToque = await pag.evaluate(() => JSON.stringify(window.__reto.marcador(new Date().toISOString().slice(0,10), 'valeria')));
+  ok('si la tocan no cambia nada', antesToque === despuesToque);
+  const mEsc = await pag.evaluate(() => ({ scroll: document.documentElement.scrollWidth, ancho: window.innerWidth }));
+  ok('no desborda a lo ancho', mEsc.scroll <= mEsc.ancho + 1);
+
+  await pag.locator('#btnSalirEscaparate').click({ delay: 120 });
+  await pag.waitForTimeout(300);
+  ok('un toque suelto NO la cierra', await esc.isVisible());
+  await pag.locator('#btnSalirEscaparate').click({ delay: 1200 });
+  await pag.waitForTimeout(400);
+  ok('manteniendo pulsado si se sale', !(await esc.isVisible()));
+
+  /* se actualiza sola con lo que apunte el otro movil */
+  await pag.locator('#btnEscaparate').click();
+  await pag.waitForTimeout(300);
+  const corazonesEsc = async () => (await esc.locator('.esc-nina').first().locator('.esc-pips').first().innerText()).replace(/\s/g, '').indexOf('🖤');
+  const antesFuera = await esc.locator('.esc-nina').first().innerText();
+  await fetch(API + '/f/' + FAMILIA, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nuevos: [{ id: 'desdeFuera1', dia: hoyClave, nina: 'valeria', tipo: 'mal', hora: '20:00', ts: Date.now() }] })
+  });
+  await pag.evaluate(() => window.__reto.sincronizar());
+  ok('se actualiza sola cuando apunta el otro movil',
+     await esperarA(async () => (await esc.locator('.esc-nina').first().innerText()) !== antesFuera, 12000));
+  await pag.locator('#btnSalirEscaparate').click({ delay: 1200 });
+  await pag.waitForTimeout(300);
 
   /* 18. sonido */
   console.log('-- sonido');
