@@ -132,11 +132,24 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 
 /* ---------- ranking ---------- */
 .ranking{padding:13px 14px 4px}
+.ranking-cab{display:flex;align-items:center;gap:8px}
 .ranking h2{
-  margin:0 0 4px;font-size:1rem;font-weight:800;letter-spacing:-.01em;
-  display:flex;flex-direction:column;gap:2px;
+  flex:1;min-width:0;margin:0;font-size:1rem;font-weight:800;letter-spacing:-.01em;
 }
-.ranking h2 small{font-size:.74rem;font-weight:600;color:var(--suave);letter-spacing:0}
+.sync{
+  flex:0 0 auto;min-height:36px;border-radius:999px;border:1.5px solid var(--linea);
+  background:#faf8f6;font-size:.76rem;font-weight:700;color:var(--suave);
+  padding:6px 11px;white-space:nowrap;font-family:inherit;
+}
+.sync.mal{border-color:#f6cfcc;background:var(--rojo-luz);color:var(--rojo-osc)}
+.sync.bien{border-color:#c9ecd9;background:var(--verde-luz);color:var(--verde-osc)}
+.pestanas{display:flex;gap:6px;margin:10px 0 2px;background:#f5f2ee;border-radius:14px;padding:4px}
+.pest{
+  flex:1;min-height:44px;border:0;border-radius:11px;background:none;
+  font-size:.95rem;font-weight:800;color:var(--suave);font-family:inherit;
+}
+.pest.activa{background:#fff;color:var(--tinta);box-shadow:0 1px 3px rgba(44,50,68,.12)}
+.pista{margin:8px 2px 2px;font-size:.74rem;font-weight:600;color:var(--suave);line-height:1.35}
 .rank{
   display:flex;width:100%;align-items:center;gap:10px;min-height:52px;
   padding:9px 2px;border:0;border-top:1px solid #f2eee9;background:none;
@@ -152,6 +165,27 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 .rank .sello{font-size:1.1rem}
 .rank.malva .marca{color:var(--rojo-osc)}
 .rank.buena .marca{color:var(--verde-osc)}
+
+/* ---------- ranking semanal ---------- */
+.semanera{border-top:1px solid #f2eee9;padding:10px 2px 12px}
+.semanera:first-child{border-top:0}
+.semanera .rank{border-top:0;padding:0;min-height:44px}
+.dias{display:flex;gap:5px;margin-top:8px}
+.dia{
+  flex:1;min-width:0;border-radius:12px;background:#f6f3f0;padding:6px 1px;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+}
+.dia b{font-size:.68rem;font-weight:800;color:var(--suave)}
+.dia i{font-style:normal;font-size:.95rem;font-weight:800;line-height:1.2}
+.dia.premio{background:var(--verde-luz);color:var(--verde-osc)}
+.dia.castigo{background:var(--rojo-luz);color:var(--rojo-osc)}
+.dia.hoy{box-shadow:inset 0 0 0 2px var(--acento)}
+.dia.futuro{opacity:.4}
+.codigo{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.35rem;font-weight:700;
+  text-align:center;background:#f5f2ee;border-radius:14px;padding:14px 10px;margin:0 0 14px;
+  letter-spacing:.06em;word-break:break-all;
+}
 
 /* ---------- pie ---------- */
 .bloque{
@@ -233,8 +267,16 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 
 <div class="envoltura">
   <div class="arriba">
-    <section class="bloque ranking" id="ranking" aria-label="Ranking de hoy">
-      <h2>🏆 Ranking de hoy <small>gana quien más ⭐ lleva · desempata el ❤️</small></h2>
+    <section class="bloque ranking" id="ranking" aria-label="Ranking">
+      <div class="ranking-cab">
+        <h2 id="tituloRanking">🏆 Ranking de hoy</h2>
+        <button class="sync" id="btnSync" type="button">📱</button>
+      </div>
+      <div class="pestanas">
+        <button class="pest" type="button" data-vista="hoy">Hoy</button>
+        <button class="pest" type="button" data-vista="semana">Semana L–V</button>
+      </div>
+      <p class="pista" id="pistaRanking"></p>
       <div id="listaRanking"></div>
     </section>
 
@@ -263,7 +305,9 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 (function(){
 "use strict";
 
-var CLAVE = "reto-del-viaje-v1";
+var API = "https://miplandeempresa.com/reto-api";
+var CLAVE = "reto-del-viaje-v2";
+var CLAVE_VIEJA = "reto-del-viaje-v1";
 var NINAS = [
   { id:"valeria",   nombre:"Valeria",   acento:"#e46a8b" },
   { id:"alejandra", nombre:"Alejandra", acento:"#7b6cd9" },
@@ -273,76 +317,209 @@ var POR_DEFECTO = {
   oportunidades: 5,
   objetivo: 5,
   textoRecompensa: "¡Premio especial!",
-  textoCastigo: "Castigada"
+  textoCastigo: "Castigada",
+  ts: 0
 };
+var LETRAS = ["L","M","X","J","V"];
 
-var estado = null;
+/* local = lo que guarda este movil:
+     familia  codigo compartido con el otro movil
+     doc      copia de lo que hay en el servidor (eventos por dia)
+     cola     lo apuntado aqui que aun no ha llegado al servidor          */
+var local = null;
+var sincronizando = false, otraVuelta = false, red = "local", temporizador = null;
 
-function hoy(){
-  var d = new Date();
-  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
-}
-function ahora(){
-  var d = new Date();
-  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
-}
+/* ---------------- utilidades ---------------- */
+function dosCifras(n){ return String(n).padStart(2,"0"); }
+function claveFecha(d){ return d.getFullYear() + "-" + dosCifras(d.getMonth()+1) + "-" + dosCifras(d.getDate()); }
+function hoy(){ return claveFecha(new Date()); }
+function ahora(){ var d = new Date(); return dosCifras(d.getHours()) + ":" + dosCifras(d.getMinutes()); }
 function limitar(v, min, max, porDefecto){
   if (typeof v !== "number" || isNaN(v)) v = (porDefecto === undefined ? min : porDefecto);
   return Math.max(min, Math.min(max, v));
 }
-function nuevasNinas(cfg){
-  var o = {};
-  NINAS.forEach(function(n){ o[n.id] = { corazones: cfg.oportunidades, estrellas: 0 }; });
-  return o;
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function nuevoCodigo(){
+  var a = "abcdefghijkmnpqrstuvwxyz23456789", s = "";
+  for (var i=0;i<8;i++) s += a.charAt(Math.floor(Math.random()*a.length));
+  return "casa-" + s;
 }
-function estadoInicial(){
-  var c = JSON.parse(JSON.stringify(POR_DEFECTO));
-  return { fecha: hoy(), config: c, sonido: true, ninas: nuevasNinas(c), historial: [] };
+function esc(t){
+  return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+/* lunes de la semana en la que cae d */
+function lunesDe(d){
+  var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
+}
+function semanaLaboral(){
+  var l = lunesDe(new Date()), dias = [];
+  for (var i=0;i<5;i++){ var x = new Date(l.getFullYear(), l.getMonth(), l.getDate()+i); dias.push(claveFecha(x)); }
+  return dias;
+}
+
+/* ---------------- estado ---------------- */
+function docVacio(){ return { v:1, config:null, dias:{}, ts:0 }; }
+function localVacio(){
+  return { familia:null, sonido:true, vista:"hoy", doc:docVacio(), cola:{ nuevos:[], borrados:[], config:null } };
+}
+function cfg(){
+  var c = local.doc.config || {};
+  return {
+    oportunidades: limitar(parseInt(c.oportunidades,10), 1, 10, POR_DEFECTO.oportunidades),
+    objetivo:      limitar(parseInt(c.objetivo,10),      1, 10, POR_DEFECTO.objetivo),
+    textoRecompensa: c.textoRecompensa || POR_DEFECTO.textoRecompensa,
+    textoCastigo:    c.textoCastigo    || POR_DEFECTO.textoCastigo,
+    ts: Number(c.ts) || 0
+  };
+}
+function dia(d, crear){
+  var x = local.doc.dias[d];
+  if (!x && crear) x = local.doc.dias[d] = { eventos:[], borrados:[] };
+  return x || { eventos:[], borrados:[] };
+}
+function eventosDe(d){ return dia(d).eventos; }
+/* corazones y estrellas de una nina en un dia, calculados desde los eventos */
+function marcador(d, ninaId, c){
+  c = c || cfg();
+  var bien = 0, mal = 0;
+  eventosDe(d).forEach(function(e){
+    if (e.nina !== ninaId) return;
+    if (e.tipo === "bien") bien++; else mal++;
+  });
+  return {
+    estrellas: bien,
+    perdidos: mal,
+    corazones: Math.max(0, c.oportunidades - mal),
+    castigada: c.oportunidades - mal <= 0,
+    premiada: bien >= c.objetivo
+  };
+}
+function migrarDeLaVersionVieja(){
+  var v = null;
+  try { v = JSON.parse(localStorage.getItem(CLAVE_VIEJA) || "null"); } catch(e){ return null; }
+  if (!v || typeof v !== "object") return null;
+  var g = localVacio();
+  var fecha = /^\d{4}-\d{2}-\d{2}$/.test(v.fecha || "") ? v.fecha : hoy();
+  g.sonido = v.sonido !== false;
+  var c = v.config || {};
+  g.doc.config = {
+    oportunidades: limitar(parseInt(c.oportunidades,10),1,10,POR_DEFECTO.oportunidades),
+    objetivo:      limitar(parseInt(c.objetivo,10),1,10,POR_DEFECTO.objetivo),
+    textoRecompensa: c.textoRecompensa || POR_DEFECTO.textoRecompensa,
+    textoCastigo:    c.textoCastigo || POR_DEFECTO.textoCastigo,
+    ts: Date.now()
+  };
+  g.cola.config = g.doc.config;
+  var base = Date.now() - 1000;
+  (Array.isArray(v.historial) ? v.historial : []).forEach(function(h,i){
+    if (!h || (h.tipo !== "bien" && h.tipo !== "mal")) return;
+    var ev = { id:uid(), dia:fecha, nina:h.nina, tipo:h.tipo, hora:h.hora || ahora(), ts: base + i };
+    g.doc.dias[fecha] = g.doc.dias[fecha] || { eventos:[], borrados:[] };
+    g.doc.dias[fecha].eventos.push({ id:ev.id, nina:ev.nina, tipo:ev.tipo, hora:ev.hora, ts:ev.ts });
+    g.cola.nuevos.push(ev);
+  });
+  return g;
 }
 function cargar(){
-  var e = null;
-  try { e = JSON.parse(localStorage.getItem(CLAVE) || "null"); } catch(err){ e = null; }
-  if (!e || typeof e !== "object") return estadoInicial();
-  var cfg = {
-    oportunidades: limitar(parseInt((e.config||{}).oportunidades,10), 1, 10, POR_DEFECTO.oportunidades),
-    objetivo:      limitar(parseInt((e.config||{}).objetivo,10),      1, 10, POR_DEFECTO.objetivo),
-    textoRecompensa: ((e.config||{}).textoRecompensa || POR_DEFECTO.textoRecompensa),
-    textoCastigo:    ((e.config||{}).textoCastigo    || POR_DEFECTO.textoCastigo)
-  };
-  var s = {
-    fecha: e.fecha || hoy(),
-    config: cfg,
-    sonido: e.sonido !== false,
-    ninas: {},
-    historial: Array.isArray(e.historial) ? e.historial : []
-  };
-  NINAS.forEach(function(n){
-    var g = (e.ninas && e.ninas[n.id]) || {};
-    s.ninas[n.id] = {
-      corazones: limitar(parseInt(g.corazones,10), 0, cfg.oportunidades, cfg.oportunidades),
-      estrellas: limitar(parseInt(g.estrellas,10), 0, 999, 0)
-    };
-  });
-  return s;
+  var g = null;
+  try { g = JSON.parse(localStorage.getItem(CLAVE) || "null"); } catch(e){ g = null; }
+  if (!g || typeof g !== "object") g = migrarDeLaVersionVieja();
+  if (!g || typeof g !== "object") g = localVacio();
+  var base = localVacio();
+  g.doc = (g.doc && typeof g.doc === "object" && g.doc.dias) ? g.doc : base.doc;
+  g.cola = (g.cola && typeof g.cola === "object") ? g.cola : base.cola;
+  g.cola.nuevos = Array.isArray(g.cola.nuevos) ? g.cola.nuevos : [];
+  g.cola.borrados = Array.isArray(g.cola.borrados) ? g.cola.borrados : [];
+  g.sonido = g.sonido !== false;
+  g.vista = g.vista === "semana" ? "semana" : "hoy";
+  if (!g.familia) g.familia = nuevoCodigo();
+  return g;
 }
 function guardar(){
-  try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch(err){}
+  try { localStorage.setItem(CLAVE, JSON.stringify(local)); } catch(e){}
 }
-function comprobarDia(){
-  if (estado.fecha !== hoy()){
-    estado.fecha = hoy();
-    estado.ninas = nuevasNinas(estado.config);
-    estado.historial = [];
-    guardar();
-    return true;
-  }
-  return false;
+
+/* ---------------- sincronizacion ---------------- */
+function pedirSync(retraso){
+  clearTimeout(temporizador);
+  temporizador = setTimeout(sincronizar, retraso === undefined ? 700 : retraso);
+}
+function hayPendiente(){
+  var c = local.cola;
+  return !!(c.nuevos.length || c.borrados.length || c.config);
+}
+function aplicarCola(){
+  local.cola.borrados.forEach(function(b){
+    var d = dia(b.dia, true);
+    if (d.borrados.indexOf(b.id) < 0) d.borrados.push(b.id);
+    d.eventos = d.eventos.filter(function(x){ return x.id !== b.id; });
+  });
+  local.cola.nuevos.forEach(function(ev){
+    var d = dia(ev.dia, true);
+    if (d.borrados.indexOf(ev.id) >= 0) return;
+    if (d.eventos.some(function(x){ return x.id === ev.id; })) return;
+    d.eventos.push({ id:ev.id, nina:ev.nina, tipo:ev.tipo, hora:ev.hora, ts:ev.ts });
+  });
+  if (local.cola.config) local.doc.config = local.cola.config;
+}
+function sincronizar(){
+  if (!local.familia || !window.fetch) return;
+  if (sincronizando){ otraVuelta = true; return; }   /* que no se pierda lo apuntado mientras se enviaba lo anterior */
+  var c = local.cola;
+  var nN = c.nuevos.length, nB = c.borrados.length, conf = c.config;
+  var manda = nN || nB || conf;
+  sincronizando = true;
+  if (manda) { red = "enviando"; pintarSync(); }
+  var url = API + "/f/" + encodeURIComponent(local.familia);
+  var peticion = manda
+    ? fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nuevos: c.nuevos.slice(0, nN), borrados: c.borrados.slice(0, nB), config: conf || undefined })
+      })
+    : fetch(url, { cache: "no-store" });
+
+  peticion
+    .then(function(r){ if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+    .then(function(doc){
+      if (!doc || typeof doc !== "object" || !doc.dias) throw new Error("respuesta rara");
+      c.nuevos.splice(0, nN);
+      c.borrados.splice(0, nB);
+      if (conf && c.config === conf) c.config = null;
+      local.doc = doc;
+      aplicarCola();
+      red = hayPendiente() ? "pendiente" : "ok";
+      guardar();
+      pintar();
+      if (red === "pendiente") pedirSync(500);
+    })
+    .catch(function(){ red = "sin"; pintarSync(); })
+    .then(function(){
+      sincronizando = false;
+      pintarSync();
+      if (otraVuelta){ otraVuelta = false; pedirSync(200); }
+    });
+}
+function pintarSync(){
+  var b = document.getElementById("btnSync");
+  var textos = {
+    ok:        ["☁️ Al día", ""],
+    enviando:  ["⏳ Guardando…", ""],
+    pendiente: ["⏳ Pendiente", ""],
+    sin:       ["⚠️ Sin conexión", "mal"],
+    local:     ["📱 Solo aquí", ""]
+  };
+  var t = textos[red] || textos.local;
+  b.textContent = t[0];
+  b.className = "sync " + (t[1] || (red === "ok" ? "bien" : ""));
 }
 
 /* ---------------- sonido ---------------- */
 var ctxAudio = null;
 function audio(){
-  if (!estado.sonido) return null;
+  if (!local.sonido) return null;
   try {
     if (!ctxAudio){
       var AC = window.AudioContext || window.webkitAudioContext;
@@ -418,40 +595,31 @@ function pintarConfeti(){
 var cont = document.getElementById("ninas");
 var efectos = {};
 
-function esc(t){
-  return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-function ultimaDe(id){
-  for (var i=estado.historial.length-1;i>=0;i--){ if (estado.historial[i].nina === id) return i; }
-  return -1;
-}
 function pintar(){
-  var cfg = estado.config;
+  var c = cfg(), d = hoy();
   cont.innerHTML = NINAS.map(function(n){
-    var g = estado.ninas[n.id];
-    var castigada = g.corazones <= 0;
-    var premiada  = g.estrellas >= cfg.objetivo;
+    var m = marcador(d, n.id, c);
     var fx = efectos[n.id];
     var corazones = "", estrellas = "", i;
-    for (i=0;i<cfg.oportunidades;i++){
-      var vivo = i < g.corazones;
-      var animar = fx && fx.tipo === "pierde" && i === g.corazones;
+    for (i=0;i<c.oportunidades;i++){
+      var vivo = i < m.corazones;
+      var animar = fx && fx.tipo === "pierde" && i === m.corazones;
       corazones += '<span class="pip' + (vivo ? "" : " vacio") + (animar ? " rompe" : "") + '">' + (vivo ? "❤️" : "🖤") + '</span>';
     }
-    var tope = Math.max(cfg.objetivo, g.estrellas);
+    var tope = Math.max(c.objetivo, m.estrellas);
     for (i=0;i<tope;i++){
-      var llena = i < g.estrellas;
-      var brota = fx && fx.tipo === "gana" && i === g.estrellas - 1;
+      var llena = i < m.estrellas;
+      var brota = fx && fx.tipo === "gana" && i === m.estrellas - 1;
       estrellas += '<span class="pip' + (llena ? "" : " vacio") + (brota ? " brota" : "") + '">⭐</span>';
     }
     var aviso = "";
-    if (castigada) {
-      aviso = '<div class="aviso mal" data-castigada><span class="emo">😢</span><span>⛔ ' + esc(cfg.textoCastigo).toUpperCase() + '</span></div>';
-    } else if (premiada) {
-      aviso = '<div class="aviso bien" data-premiada><span class="emo">🎁</span><span>¡HAS CONSEGUIDO UNA RECOMPENSA! ' + esc(cfg.textoRecompensa) + '</span></div>';
+    if (m.castigada) {
+      aviso = '<div class="aviso mal" data-castigada><span class="emo">😢</span><span>⛔ ' + esc(c.textoCastigo).toUpperCase() + '</span></div>';
+    } else if (m.premiada) {
+      aviso = '<div class="aviso bien" data-premiada><span class="emo">🎁</span><span>¡HAS CONSEGUIDO UNA RECOMPENSA! ' + esc(c.textoRecompensa) + '</span></div>';
     }
-    var puedeDeshacer = ultimaDe(n.id) >= 0;
-    var clases = "tarjeta" + (castigada ? " castigada" : "") + (premiada ? " premiada" : "");
+    var puedeDeshacer = !!ultimoEvento(d, n.id);
+    var clases = "tarjeta" + (m.castigada ? " castigada" : "") + (m.premiada ? " premiada" : "");
     if (fx && fx.tipo === "pierde") clases += " tiembla";
     if (fx && fx.tipo === "gana")   clases += " salta";
 
@@ -459,13 +627,13 @@ function pintar(){
     '<section class="' + clases + '" style="--acento:' + n.acento + '" data-tarjeta="' + n.id + '">' +
       '<h2 class="nombre"><span class="inicial">' + n.nombre.charAt(0) + '</span>' + n.nombre + '</h2>' +
       '<div class="marcador">' +
-        '<div class="fila" data-corazones>' + corazones + '<span class="cuenta" data-cuenta-corazones>' + g.corazones + ' / ' + cfg.oportunidades + '</span></div>' +
-        '<div class="fila" data-estrellas>' + estrellas + '<span class="cuenta" data-cuenta-estrellas>' + g.estrellas + ' / ' + cfg.objetivo + '</span></div>' +
+        '<div class="fila" data-corazones>' + corazones + '<span class="cuenta" data-cuenta-corazones>' + m.corazones + ' / ' + c.oportunidades + '</span></div>' +
+        '<div class="fila" data-estrellas>' + estrellas + '<span class="cuenta" data-cuenta-estrellas>' + m.estrellas + ' / ' + c.objetivo + '</span></div>' +
       '</div>' +
       aviso +
       '<div class="acciones">' +
         '<button class="grande bien" type="button" data-accion="bien" data-nina="' + n.id + '"><span class="em">🟢</span> SE HA PORTADO BIEN</button>' +
-        '<button class="grande mal" type="button" data-accion="mal" data-nina="' + n.id + '"' + (castigada ? " disabled" : "") + '><span class="em">🔴</span> SE HA PORTADO MAL</button>' +
+        '<button class="grande mal" type="button" data-accion="mal" data-nina="' + n.id + '"' + (m.castigada ? " disabled" : "") + '><span class="em">🔴</span> SE HA PORTADO MAL</button>' +
         '<button class="deshacer" type="button" data-accion="deshacer" data-nina="' + n.id + '"' + (puedeDeshacer ? "" : " disabled") + '>↩️ Deshacer última acción</button>' +
       '</div>' +
     '</section>';
@@ -473,46 +641,104 @@ function pintar(){
   efectos = {};
   pintarRanking();
   pintarHistorial();
-  document.getElementById("btnSonido").textContent = estado.sonido ? "🔊" : "🔇";
-  document.getElementById("firma").textContent = "Día " + estado.fecha + " · los datos se guardan en este móvil";
+  pintarSync();
+  document.getElementById("btnSonido").textContent = local.sonido ? "🔊" : "🔇";
+  document.getElementById("firma").textContent = "Día " + d + " · se guarda en los dos móviles";
 }
-/* ranking del dia: primero las estrellas y, si empatan, quien conserva mas corazones */
+
+/* ranking: primero las estrellas y, si empatan, quien conserva mas corazones */
 function pintarRanking(){
-  var cfg = estado.config;
-  var lista = NINAS.map(function(n){
-    var g = estado.ninas[n.id];
-    return { nina:n, g:g, puntos: g.estrellas * 100 + g.corazones };
+  var semana = local.vista === "semana";
+  document.getElementById("tituloRanking").textContent = semana ? "🏆 Ranking de la semana" : "🏆 Ranking de hoy";
+  document.getElementById("pistaRanking").textContent = semana
+    ? "De lunes a viernes. Gana quien más ⭐ suma en los cinco días; desempata quien menos ❤️ ha perdido."
+    : "Gana quien más ⭐ lleva hoy · desempata el ❤️";
+  Array.prototype.forEach.call(document.querySelectorAll(".pest"), function(p){
+    p.className = "pest" + (p.getAttribute("data-vista") === local.vista ? " activa" : "");
   });
-  lista.sort(function(a,b){ return b.puntos - a.puntos; });
-  var empateTotal = lista.every(function(x){ return x.puntos === lista[0].puntos; });
-  var puesto = 0, anterior = null;
+  document.getElementById("listaRanking").innerHTML = semana ? htmlSemana() : htmlHoy();
+}
+function ordenar(lista){
+  lista.sort(function(a,b){
+    if (b.estrellas !== a.estrellas) return b.estrellas - a.estrellas;
+    return a.perdidos - b.perdidos;
+  });
+  var empate = lista.every(function(x){ return x.estrellas === lista[0].estrellas && x.perdidos === lista[0].perdidos; });
+  var puesto = 0, antEstrellas = null, antPerdidos = null;
   lista.forEach(function(x,i){
-    if (anterior === null || x.puntos !== anterior){ puesto = i + 1; anterior = x.puntos; }
+    if (x.estrellas !== antEstrellas || x.perdidos !== antPerdidos){ puesto = i+1; antEstrellas = x.estrellas; antPerdidos = x.perdidos; }
     x.puesto = puesto;
+    x.empate = empate;
   });
-  var medallas = { 1:"🥇", 2:"🥈", 3:"🥉" };
-  document.getElementById("listaRanking").innerHTML = lista.map(function(x){
-    var castigada = x.g.corazones <= 0;
-    var premiada  = x.g.estrellas >= cfg.objetivo;
-    var sello = castigada ? '<span class="sello" title="Castigada">⛔</span>'
-              : premiada  ? '<span class="sello" title="Recompensa">🎁</span>' : '';
-    var marca = '<span>⭐ ' + x.g.estrellas + '</span><span>❤️ ' + x.g.corazones + '</span>';
-    return '<button class="rank' + (castigada ? " malva" : premiada ? " buena" : "") + '" type="button"' +
+  return lista;
+}
+function medalla(x){
+  if (x.empate) return '<span class="puesto igualados">–</span>';
+  var m = { 1:"🥇", 2:"🥈", 3:"🥉" }[x.puesto] || (x.puesto + "º");
+  return '<span class="puesto">' + m + '</span>';
+}
+function htmlHoy(){
+  var c = cfg(), d = hoy();
+  var lista = ordenar(NINAS.map(function(n){
+    var m = marcador(d, n.id, c);
+    return { nina:n, estrellas:m.estrellas, perdidos:m.perdidos, castigada:m.castigada, premiada:m.premiada, corazones:m.corazones };
+  }));
+  return lista.map(function(x){
+    var sello = x.castigada ? '<span class="sello">⛔</span>' : x.premiada ? '<span class="sello">🎁</span>' : '';
+    return '<button class="rank' + (x.castigada ? " malva" : x.premiada ? " buena" : "") + '" type="button"' +
              ' data-ir="' + x.nina.id + '" style="--acento:' + x.nina.acento + '">' +
-             '<span class="puesto' + (empateTotal ? " igualados" : "") + '">' +
-               (empateTotal ? "–" : (medallas[x.puesto] || x.puesto + "º")) + '</span>' +
+             medalla(x) +
              '<span class="quien"><span class="punto"></span>' + x.nina.nombre + sello + '</span>' +
-             '<span class="marca">' + marca + '</span>' +
+             '<span class="marca"><span>⭐ ' + x.estrellas + '</span><span>❤️ ' + x.corazones + '</span></span>' +
            '</button>';
+  }).join("");
+}
+function htmlSemana(){
+  var c = cfg(), dias = semanaLaboral(), d = hoy();
+  var lista = ordenar(NINAS.map(function(n){
+    var total = { nina:n, estrellas:0, perdidos:0, premios:0, castigos:0, dias:[] };
+    dias.forEach(function(f,i){
+      var m = marcador(f, n.id, c);
+      total.estrellas += m.estrellas;
+      total.perdidos  += m.perdidos;
+      if (m.premiada) total.premios++;
+      if (m.castigada) total.castigos++;
+      total.dias.push({ fecha:f, letra:LETRAS[i], m:m, hay: eventosDe(f).length > 0 });
+    });
+    return total;
+  }));
+  return lista.map(function(x){
+    var chips = x.dias.map(function(z){
+      var clase = "dia";
+      if (z.fecha === d) clase += " hoy";
+      if (z.fecha > d) clase += " futuro";
+      var valor;
+      if (z.fecha > d) valor = "·";
+      else if (z.m.castigada){ clase += " castigo"; valor = "⛔"; }
+      else if (z.m.premiada){ clase += " premio"; valor = "🎁"; }
+      else valor = String(z.m.estrellas);
+      return '<span class="' + clase + '"><b>' + z.letra + '</b><i>' + valor + '</i></span>';
+    }).join("");
+    var sellos = (x.premios ? '<span class="sello">🎁' + (x.premios > 1 ? "×" + x.premios : "") + '</span>' : '') +
+                 (x.castigos ? '<span class="sello">⛔' + (x.castigos > 1 ? "×" + x.castigos : "") + '</span>' : '');
+    return '<div class="semanera" style="--acento:' + x.nina.acento + '">' +
+             '<button class="rank" type="button" data-ir="' + x.nina.id + '">' +
+               medalla(x) +
+               '<span class="quien"><span class="punto"></span>' + x.nina.nombre + sellos + '</span>' +
+               '<span class="marca"><span>⭐ ' + x.estrellas + '</span><span>💔 ' + x.perdidos + '</span></span>' +
+             '</button>' +
+             '<div class="dias">' + chips + '</div>' +
+           '</div>';
   }).join("");
 }
 function pintarHistorial(){
   var ul = document.getElementById("historial");
-  if (!estado.historial.length){
+  var evs = eventosDe(hoy()).slice().sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
+  if (!evs.length){
     ul.innerHTML = '<li class="vacio">Todavía no hay nada apuntado hoy.</li>';
     return;
   }
-  ul.innerHTML = estado.historial.slice().reverse().map(function(h){
+  ul.innerHTML = evs.reverse().map(function(h){
     var n = NINAS.filter(function(x){ return x.id === h.nina; })[0];
     var txt = h.tipo === "bien" ? "⭐ Buena acción" : "💔 Perdió una oportunidad";
     return '<li><span class="hora">' + esc(h.hora) + '</span><span class="quien">' + esc(n ? n.nombre : h.nina) + '</span><span>' + txt + '</span></li>';
@@ -520,44 +746,61 @@ function pintarHistorial(){
 }
 
 /* ---------------- acciones ---------------- */
+function ultimoEvento(d, ninaId){
+  var ult = null;
+  eventosDe(d).forEach(function(e){
+    if (e.nina !== ninaId) return;
+    if (!ult || (e.ts || 0) >= (ult.ts || 0)) ult = e;
+  });
+  return ult;
+}
 function apuntar(id, tipo){
-  comprobarDia();
-  var cfg = estado.config, g = estado.ninas[id];
-  if (!g) return;
+  var c = cfg(), d = hoy(), antes = marcador(d, id, c);
+  if (tipo === "mal" && antes.castigada) return;
+  var ev = { id:uid(), dia:d, nina:id, tipo:tipo, hora:ahora(), ts:Date.now() };
+  dia(d, true).eventos.push({ id:ev.id, nina:ev.nina, tipo:ev.tipo, hora:ev.hora, ts:ev.ts });
+  local.cola.nuevos.push(ev);
+  var despues = marcador(d, id, c);
   if (tipo === "mal"){
-    if (g.corazones <= 0) return;
-    g.corazones--;
     efectos[id] = { tipo:"pierde" };
-    estado.historial.push({ nina:id, tipo:"mal", hora: ahora() });
-    sonar(g.corazones === 0 ? "castigo" : "mal");
+    sonar(despues.castigada ? "castigo" : "mal");
   } else {
-    var yaPremiada = g.estrellas >= cfg.objetivo;
-    g.estrellas++;
     efectos[id] = { tipo:"gana" };
-    estado.historial.push({ nina:id, tipo:"bien", hora: ahora() });
-    if (!yaPremiada && g.estrellas >= cfg.objetivo){ sonar("premio"); confeti(); }
+    if (!antes.premiada && despues.premiada){ sonar("premio"); confeti(); }
     else sonar("bien");
   }
-  guardar();
-  pintar();
+  red = "pendiente";
+  guardar(); pintar(); pedirSync();
 }
 function deshacer(id){
-  var pos = ultimaDe(id);
-  if (pos < 0) return;
-  var ult = estado.historial[pos], g = estado.ninas[id];
-  if (ult.tipo === "mal") g.corazones = Math.min(estado.config.oportunidades, g.corazones + 1);
-  else g.estrellas = Math.max(0, g.estrellas - 1);
-  estado.historial.splice(pos,1);
+  var d = hoy(), ult = ultimoEvento(d, id);
+  if (!ult) return;
+  var x = dia(d, true);
+  x.eventos = x.eventos.filter(function(e){ return e.id !== ult.id; });
+  if (x.borrados.indexOf(ult.id) < 0) x.borrados.push(ult.id);
+  local.cola.nuevos = local.cola.nuevos.filter(function(e){ return e.id !== ult.id; });
+  local.cola.borrados.push({ dia:d, id:ult.id });
   sonar("deshacer");
-  guardar();
-  pintar();
+  red = "pendiente";
+  guardar(); pintar(); pedirSync();
 }
 function nuevoDia(){
-  estado.fecha = hoy();
-  estado.ninas = nuevasNinas(estado.config);
-  estado.historial = [];
-  guardar();
-  pintar();
+  var d = hoy(), x = dia(d, true);
+  x.eventos.forEach(function(e){
+    if (x.borrados.indexOf(e.id) < 0) x.borrados.push(e.id);
+    local.cola.borrados.push({ dia:d, id:e.id });
+  });
+  x.eventos = [];
+  local.cola.nuevos = local.cola.nuevos.filter(function(e){ return e.dia !== d; });
+  red = "pendiente";
+  guardar(); pintar(); pedirSync(0);
+}
+function guardarConfig(nueva){
+  nueva.ts = Date.now();
+  local.doc.config = nueva;
+  local.cola.config = nueva;
+  red = "pendiente";
+  guardar(); pintar(); pedirSync(0);
 }
 
 /* ---------------- paneles ---------------- */
@@ -575,10 +818,10 @@ function cerrarHoja(){
 velo.addEventListener("click", function(e){ if (e.target === velo) cerrarHoja(); });
 
 function abrirAjustes(){
-  var c = estado.config;
+  var c = cfg();
   abrirHoja('' +
     '<h2>⚙️ Ajustes</h2>' +
-    '<p class="sub">Se guardan y se mantienen al empezar un nuevo día.</p>' +
+    '<p class="sub">Valen para las tres y se aplican en los dos móviles.</p>' +
     '<div class="numeros">' +
       '<div class="campo"><label for="cfgOp">❤️ Oportunidades</label><input id="cfgOp" type="number" inputmode="numeric" min="1" max="10" value="' + c.oportunidades + '"></div>' +
       '<div class="campo"><label for="cfgOb">⭐ Para el premio</label><input id="cfgOb" type="number" inputmode="numeric" min="1" max="10" value="' + c.objetivo + '"></div>' +
@@ -586,25 +829,72 @@ function abrirAjustes(){
     '<div class="campo"><label for="cfgRe">🎁 Texto de la recompensa</label><input id="cfgRe" type="text" maxlength="60" value="' + esc(c.textoRecompensa) + '"></div>' +
     '<div class="campo"><label for="cfgCa">⛔ Texto del castigo</label><input id="cfgCa" type="text" maxlength="30" value="' + esc(c.textoCastigo) + '"></div>' +
     '<button class="grande bien" type="button" id="cfgGuardar">GUARDAR</button>' +
+    '<button class="secundario" type="button" id="cfgCompartir">📲 Compartir con el otro móvil</button>' +
     '<button class="secundario" type="button" data-cerrar>Cancelar</button>'
   );
   document.getElementById("cfgGuardar").addEventListener("click", function(){
-    var op = limitar(parseInt(document.getElementById("cfgOp").value,10), 1, 10, POR_DEFECTO.oportunidades);
-    var ob = limitar(parseInt(document.getElementById("cfgOb").value,10), 1, 10, POR_DEFECTO.objetivo);
-    var re = (document.getElementById("cfgRe").value || "").trim() || POR_DEFECTO.textoRecompensa;
-    var ca = (document.getElementById("cfgCa").value || "").trim() || POR_DEFECTO.textoCastigo;
-    estado.config = { oportunidades: op, objetivo: ob, textoRecompensa: re, textoCastigo: ca };
-    NINAS.forEach(function(n){
-      var g = estado.ninas[n.id];
-      if (g.corazones > op) g.corazones = op;
+    guardarConfig({
+      oportunidades: limitar(parseInt(document.getElementById("cfgOp").value,10), 1, 10, POR_DEFECTO.oportunidades),
+      objetivo:      limitar(parseInt(document.getElementById("cfgOb").value,10), 1, 10, POR_DEFECTO.objetivo),
+      textoRecompensa: (document.getElementById("cfgRe").value || "").trim() || POR_DEFECTO.textoRecompensa,
+      textoCastigo:    (document.getElementById("cfgCa").value || "").trim() || POR_DEFECTO.textoCastigo
     });
-    guardar(); cerrarHoja(); pintar();
+    cerrarHoja();
   });
+  document.getElementById("cfgCompartir").addEventListener("click", abrirCompartir);
+}
+function enlaceDeFamilia(){
+  return location.origin + location.pathname + "?f=" + encodeURIComponent(local.familia);
+}
+function abrirCompartir(){
+  var estados = {
+    ok: "Todo guardado. Lo que apuntéis se ve en los dos móviles.",
+    enviando: "Guardando…",
+    pendiente: "Queda algo por enviar; se manda solo en cuanto haya cobertura.",
+    sin: "Ahora mismo sin conexión: se apunta aquí y se envía solo al recuperarla.",
+    local: "Sin conectar todavía."
+  };
+  abrirHoja('' +
+    '<h2>📲 El móvil de los dos</h2>' +
+    '<p class="sub">Los dos móviles que usen este código comparten corazones, estrellas y ranking. ' + esc(estados[red] || "") + '</p>' +
+    '<p class="codigo" id="codigoFamilia">' + esc(local.familia) + '</p>' +
+    '<button class="grande bien" type="button" id="btnEnlace">📤 ENVIAR ENLACE AL OTRO MÓVIL</button>' +
+    '<div class="campo" style="margin-top:18px"><label for="cfgFam">…o escribe aquí el código del otro móvil</label>' +
+      '<input id="cfgFam" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="40" placeholder="casa-xxxxxxxx"></div>' +
+    '<button class="secundario" type="button" id="btnConectar">CONECTAR CON ESE CÓDIGO</button>' +
+    '<button class="secundario" type="button" data-cerrar>Cerrar</button>'
+  );
+  document.getElementById("btnEnlace").addEventListener("click", function(){
+    var enlace = enlaceDeFamilia(), b = document.getElementById("btnEnlace");
+    if (navigator.share){
+      navigator.share({ title:"El Reto del Viaje", text:"Abre esto para apuntar tú también:", url:enlace }).catch(function(){});
+      return;
+    }
+    var listo = function(){ b.textContent = "✅ ENLACE COPIADO"; setTimeout(function(){ b.textContent = "📤 ENVIAR ENLACE AL OTRO MÓVIL"; }, 2500); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(enlace).then(listo, function(){ document.getElementById("codigoFamilia").textContent = enlace; });
+    } else {
+      document.getElementById("codigoFamilia").textContent = enlace;
+    }
+  });
+  document.getElementById("btnConectar").addEventListener("click", function(){
+    var v = (document.getElementById("cfgFam").value || "").trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9-]{3,39}$/.test(v)) { document.getElementById("cfgFam").focus(); return; }
+    conectarCon(v);
+    cerrarHoja();
+  });
+}
+function conectarCon(codigo){
+  if (!codigo || codigo === local.familia) return;
+  local.familia = codigo;
+  local.doc = docVacio();
+  red = "pendiente";
+  guardar(); pintar(); sincronizar();
 }
 function confirmarNuevoDia(){
   abrirHoja('' +
     '<h2>🔄 ¿Empezar un nuevo día?</h2>' +
-    '<p class="sub">Las tres vuelven a tener ' + estado.config.oportunidades + ' ❤️ y 0 ⭐, y se borra el historial de hoy. Los ajustes se mantienen.</p>' +
+    '<p class="sub">Las tres vuelven a tener ' + cfg().oportunidades + ' ❤️ y 0 ⭐, y se borra lo apuntado hoy en los dos móviles. Los ajustes y el ranking de la semana se mantienen.</p>' +
     '<button class="grande mal" type="button" id="siNuevoDia">SÍ, EMPEZAR DE NUEVO</button>' +
     '<button class="secundario" type="button" data-cerrar>No, seguir con el día</button>'
   );
@@ -616,6 +906,8 @@ document.addEventListener("click", function(e){
   var b = e.target && e.target.closest ? e.target.closest("button") : null;
   if (!b) return;
   if (b.hasAttribute("data-cerrar")) { cerrarHoja(); return; }
+  var vista = b.getAttribute("data-vista");
+  if (vista){ local.vista = vista; guardar(); pintarRanking(); return; }
   var ir = b.getAttribute("data-ir");
   if (ir){
     var t = document.querySelector('[data-tarjeta="' + ir + '"]');
@@ -627,31 +919,50 @@ document.addEventListener("click", function(e){
   if (acc === "deshacer") { deshacer(b.getAttribute("data-nina")); return; }
   if (b.id === "btnNuevoDia") { confirmarNuevoDia(); return; }
   if (b.id === "btnAjustes")  { abrirAjustes(); return; }
+  if (b.id === "btnSync")     { abrirCompartir(); return; }
   if (b.id === "btnSonido")   {
-    estado.sonido = !estado.sonido; guardar();
-    b.textContent = estado.sonido ? "🔊" : "🔇";
-    if (estado.sonido) sonar("bien");
+    local.sonido = !local.sonido; guardar();
+    b.textContent = local.sonido ? "🔊" : "🔇";
+    if (local.sonido) sonar("bien");
     return;
   }
 });
-document.addEventListener("visibilitychange", function(){
-  if (!document.hidden && comprobarDia()) pintar();
-});
-window.addEventListener("focus", function(){ if (estado && comprobarDia()) pintar(); });
-setInterval(function(){ if (estado && comprobarDia()) pintar(); }, 60000);
+
+var diaPintado = hoy();
+function repasar(){
+  if (diaPintado !== hoy()){ diaPintado = hoy(); pintar(); }   /* ha cambiado el dia */
+  sincronizar();
+}
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) repasar(); });
+window.addEventListener("focus", repasar);
+window.addEventListener("online", function(){ pedirSync(200); });
+setInterval(function(){ if (!document.hidden) repasar(); }, 12000);
 
 /* ---------------- arranque ---------------- */
-estado = cargar();
-comprobarDia();
+local = cargar();
+(function codigoDeLaUrl(){
+  var m = (location.search + location.hash).match(/[?&#]f=([a-z0-9-]{4,40})/i);
+  if (!m) return;
+  var codigo = m[1].toLowerCase();
+  if (codigo !== local.familia){ local.familia = codigo; local.doc = docVacio(); }
+  try { history.replaceState(null, "", location.pathname); } catch(e){}
+})();
 guardar();
 pintar();
+sincronizar();
 
 if ("serviceWorker" in navigator){
   window.addEventListener("load", function(){
     navigator.serviceWorker.register("./sw.js").catch(function(){});
   });
 }
-window.__reto = { estado: function(){ return estado; }, pintar: pintar, nuevoDia: nuevoDia };
+window.__reto = {
+  local: function(){ return local; },
+  pintar: pintar,
+  sincronizar: sincronizar,
+  conectarCon: conectarCon,
+  marcador: function(d,n){ return marcador(d,n); }
+};
 })();
 </script>
 </body>
