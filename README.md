@@ -12,6 +12,12 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
   con una casilla por día: ⭐ del día, 🎁 si llegó al premio, ⛔ si se quedó sin corazones).
 - **Foto de cada niña** (Ajustes → 📷): se recorta a una miniatura de 224 px, viaja por la API y se
   ve en los dos móviles. No está en el repositorio: vive en el buzón de la familia.
+- **Premios que no se pierden**: al llegar al objetivo se apunta un premio de ese día (clave
+  `nina|dia` con estado y marca de tiempo). Sobrevive a «empezar nuevo día»; solo se anula si se
+  deshace la estrella que lo dio. Se marcan como entregados desde el panel 🎁.
+- **Rachas**: días jugados seguidos sin quedarse sin corazones.
+- **Pantalla para ellas** (botón 👀): vista grande de solo lectura, sin botones de sumar ni restar;
+  para salir hay que mantener pulsado.
 - Botones grandes por niña, DESHACER por niña, historial del día, sonidos y ajustes.
 - **Los dos móviles a la vez.** Cada acción es un evento con su identificador; el servidor se queda
   con la unión de lo que manda cada móvil, así que da igual quién apunte. Sin cobertura se apunta
@@ -34,7 +40,7 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
 ```bash
 python make-icons.py                     # regenera los iconos de la PWA
 cd docs && python -m http.server 8765    # servir en local
-node test.js http://127.0.0.1:8765/      # 133 comprobaciones en Chrome con tamaño de iPhone
+node test.js http://127.0.0.1:8765/      # 161 comprobaciones en Chrome con tamaño de iPhone
 MOTOR=webkit node test.js <url>          # las mismas en WebKit (motor de Safari)
 node test.js https://aclasesor-bit.github.io/reto-del-viaje/   # comprobar lo publicado
 ```
