@@ -301,7 +301,7 @@ async function esperarA(fn, ms, cada) {
 
   /* 14 bis. fotos de las ninas */
   console.log('-- fotos');
-  const ficheroFoto = path.join(__dirname, 'capturas', 'foto-prueba.jpg');
+  const ficheroFoto = path.join(__dirname, 'pruebas', 'foto-prueba.jpg');
   await pag.locator('#btnAjustes').click();
   await pag.waitForTimeout(350);
   await pag.locator('#cfgFotos').click();
