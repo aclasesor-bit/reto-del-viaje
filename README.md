@@ -16,7 +16,7 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
   `nina|dia` con estado y marca de tiempo). Sobrevive a «empezar nuevo día»; solo se anula si se
   deshace la estrella que lo dio. Se marcan como entregados desde el panel 🎁.
 - **Rachas**: días jugados seguidos sin quedarse sin corazones.
-- **Pantalla para ellas** (botón 👀): vista grande de solo lectura, sin botones de sumar ni restar;
+- **Pantalla para ellas** (botón 👀): vista grande de solo lectura, ordenada por quien va ganando y con medalla, sin botones de sumar ni restar;
   para salir hay que mantener pulsado.
 - Botones grandes por niña, DESHACER por niña, historial del día, sonidos y ajustes.
 - **Los dos móviles a la vez.** Cada acción es un evento con su identificador; el servidor se queda
@@ -40,7 +40,7 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
 ```bash
 python make-icons.py                     # regenera los iconos de la PWA
 cd docs && python -m http.server 8765    # servir en local
-node test.js http://127.0.0.1:8765/      # 161 comprobaciones en Chrome con tamaño de iPhone
+node test.js http://127.0.0.1:8765/      # 164 comprobaciones en Chrome con tamaño de iPhone
 MOTOR=webkit node test.js <url>          # las mismas en WebKit (motor de Safari)
 node test.js https://aclasesor-bit.github.io/reto-del-viaje/   # comprobar lo publicado
 ```

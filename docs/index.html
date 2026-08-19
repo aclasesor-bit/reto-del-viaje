@@ -295,7 +295,11 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 }
 .esc-foto.confoto{color:transparent;box-shadow:0 0 0 3px var(--acento),0 0 0 5px #fff}
 .esc-datos{flex:1;min-width:0}
-.esc-nombre{font-size:1.45rem;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
+.esc-nombre{
+  font-size:1.45rem;font-weight:800;letter-spacing:-.02em;margin-bottom:4px;
+  display:flex;align-items:center;gap:8px;
+}
+.esc-puesto{font-size:1.7rem;line-height:1}
 .esc-pips{font-size:1.5rem;line-height:1.35;word-break:break-word}
 .esc-pips .vacio{filter:grayscale(1);opacity:.24}
 .esc-estado{margin-top:6px;font-size:1rem;font-weight:800}
@@ -923,8 +927,13 @@ function cerrarEscaparate(){ escaparateAbierto = false; document.getElementById(
 function pintarEscaparate(){
   if (!escaparateAbierto) return;
   var c = cfg(), d = hoy();
-  document.getElementById("escaparateLista").innerHTML = NINAS.map(function(n){
-    var m = marcador(d, n.id, c), i, pips = "", estrellas = "";
+  /* en el mismo orden que el ranking: primero la que va ganando */
+  var lista = ordenar(NINAS.map(function(n){
+    var m = marcador(d, n.id, c);
+    return { nina:n, m:m, estrellas:m.estrellas, perdidos:m.perdidos };
+  }));
+  document.getElementById("escaparateLista").innerHTML = lista.map(function(x){
+    var n = x.nina, m = x.m, i, pips = "", estrellas = "";
     for (i=0;i<c.oportunidades;i++) pips += '<span class="' + (i < m.corazones ? "" : "vacio") + '">' + (i < m.corazones ? "❤️" : "🖤") + '</span>';
     for (i=0;i<Math.max(c.objetivo, m.estrellas);i++) estrellas += '<span class="' + (i < m.estrellas ? "" : "vacio") + '">⭐</span>';
     var pendientes = premiosDe(n.id, "ganado").length, dias = racha(n.id), estado;
@@ -938,10 +947,12 @@ function pintarEscaparate(){
       estado = '<div class="esc-estado normal">' + trozos.join(" · ") + '</div>';
     }
     var foto = fotoDe(n.id);
+    var medallas = { 1:"🥇", 2:"🥈", 3:"🥉" };
+    var puesto = x.empate ? "" : '<span class="esc-puesto">' + (medallas[x.puesto] || x.puesto + "º") + '</span>';
     return '<div class="esc-nina' + (m.castigada ? " castigada" : m.premiada ? " premiada" : "") + '" style="--acento:' + n.acento + '">' +
              '<span class="esc-foto' + (foto ? " confoto" : "") + '"' + (foto ? ' style="background-image:url(' + foto + ')"' : '') + '>' + n.nombre.charAt(0) + '</span>' +
              '<div class="esc-datos">' +
-               '<div class="esc-nombre">' + n.nombre + '</div>' +
+               '<div class="esc-nombre">' + n.nombre + puesto + '</div>' +
                '<div class="esc-pips">' + pips + '</div>' +
                '<div class="esc-pips">' + estrellas + '</div>' +
                estado +

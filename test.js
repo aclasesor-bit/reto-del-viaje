@@ -535,6 +535,21 @@ async function esperarA(fn, ms, cada) {
      (await esc.locator('.esc-nina').first().locator('.esc-pips').count()) === 2);
   ok('NO hay ningun boton de sumar o restar dentro',
      (await esc.locator('[data-accion]').count()) === 0);
+  /* mismo orden que el ranking de hoy: primero la que va ganando */
+  const soloNombre = t => (t.match(/Valeria|Alejandra|Paula/) || [''])[0];
+  const ordenEsc = (await esc.locator('.esc-nombre').allInnerTexts()).map(soloNombre);
+  await pag.locator('#btnSalirEscaparate').click({ delay: 1200 });
+  await pag.waitForTimeout(400);
+  const ordenRanking = (await pag.locator('#listaRanking .rank .quien').allInnerTexts()).map(soloNombre);
+  ok('las ninas salen en el orden del ranking', ordenEsc.join('>') === ordenRanking.join('>'),
+     'pantalla: ' + ordenEsc.join('>') + ' · ranking: ' + ordenRanking.join('>'));
+  await pag.locator('#btnEscaparate').click();
+  await pag.waitForTimeout(400);
+  const medallas = await esc.locator('.esc-puesto').allInnerTexts();
+  ok('la primera lleva medalla de oro', medallas.length === 0 || medallas[0].indexOf('🥇') >= 0,
+     medallas.join(' '));
+  ok('o no hay medallas si van las tres igualadas',
+     medallas.length === 3 || medallas.length === 0, 'medallas: ' + medallas.length);
   const antesToque = await pag.evaluate(() => JSON.stringify(window.__reto.marcador(new Date().toISOString().slice(0,10), 'valeria')));
   await esc.locator('.esc-nina').first().click({ position: { x: 60, y: 40 } });
   await esc.locator('.esc-nina').nth(1).click();
