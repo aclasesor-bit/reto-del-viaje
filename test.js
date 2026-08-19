@@ -2,7 +2,7 @@
    Uso:  node test.js                (prueba docs\index.html en local)
          node test.js <URL>          (prueba la version publicada)
 */
-const { chromium } = require('playwright-core');
+const { chromium, webkit } = require('playwright-core');
 const path = require('path');
 const fs = require('fs');
 
@@ -19,7 +19,10 @@ function ok(nombre, condicion, detalle) {
 }
 
 (async () => {
-  const navegador = await chromium.launch({ executablePath: CHROME, headless: true });
+  const usarWebkit = process.env.MOTOR === 'webkit';
+  const navegador = usarWebkit
+    ? await webkit.launch({ headless: true })
+    : await chromium.launch({ executablePath: CHROME, headless: true });
   const ctx = await navegador.newContext({
     viewport: IPHONE,
     deviceScaleFactor: 3,
