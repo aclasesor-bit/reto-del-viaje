@@ -59,6 +59,9 @@ function ok(nombre, condicion, detalle) {
   ok('cada nina empieza con 0 estrellas', (await estrellas('alejandra')) === 0);
   ok('se pintan 5 corazones', (await tarjeta('valeria').locator('[data-corazones] .pip').count()) === 5);
   ok('se pintan 5 estrellas de objetivo', (await tarjeta('valeria').locator('[data-estrellas] .pip').count()) === 5);
+  ok('el ranking sale arriba del todo', await pag.locator('#ranking').isVisible());
+  ok('al empezar el dia van las tres igualadas, sin medallas',
+     (await pag.locator('#listaRanking .puesto.igualados').count()) === 3);
 
   /* 2. botones pulsables y tamano */
   console.log('-- botones');
@@ -123,6 +126,34 @@ function ok(nombre, condicion, detalle) {
   ok('muestra el texto del premio', /RECOMPENSA/.test(await avisoBien.innerText()));
   const hayConfeti = await pag.evaluate(() => !document.getElementById('confeti').hidden);
   ok('salta el confeti', hayConfeti);
+
+  /* 7 bis. ranking */
+  console.log('-- ranking');
+  const rankNombres = async () => pag.locator('#listaRanking .rank .quien').allInnerTexts();
+  const rankPuestos = async () => pag.locator('#listaRanking .puesto').allInnerTexts();
+  ok('el ranking lista a las tres', (await pag.locator('#listaRanking .rank').count()) === 3);
+  let orden = await rankNombres();
+  ok('Paula (5 estrellas) va la primera', /Paula/.test(orden[0]), orden.join(' > '));
+  ok('la ultima es la que peor va', /Alejandra|Valeria/.test(orden[2]), orden.join(' > '));
+  ok('hay medallas cuando no estan empatadas', (await rankPuestos())[0].indexOf('🥇') >= 0);
+  const marcaPaula = await pag.locator('#listaRanking .rank', { hasText: 'Paula' }).innerText();
+  ok('el ranking canta estrellas y corazones de cada una', /⭐\s*5/.test(marcaPaula) && /❤️\s*5/.test(marcaPaula), marcaPaula.replace(/\n/g, ' '));
+  ok('marca a la premiada con el regalo', /🎁/.test(marcaPaula));
+  ok('de partida Alejandra va la ultima', /Alejandra/.test(orden[2]), orden.join(' > '));
+  for (let i = 0; i < 3; i++) await pulsar('alejandra', 'bien');
+  orden = await rankNombres();
+  ok('el ranking se recoloca al sumar estrellas', /Alejandra/.test(orden[1]), orden.join(' > '));
+  for (let i = 0; i < 3; i++) await pulsar('alejandra', 'deshacer');
+  orden = await rankNombres();
+  ok('deshacer tambien recoloca el ranking', /Alejandra/.test(orden[2]), orden.join(' > '));
+  /* tocar una fila del ranking lleva a su tarjeta */
+  await pag.locator('#listaRanking .rank', { hasText: 'Paula' }).click();
+  await pag.waitForTimeout(700);
+  const centrada = await pag.evaluate(() => {
+    const r = document.querySelector('[data-tarjeta="paula"]').getBoundingClientRect();
+    return r.top < window.innerHeight && r.bottom > 0;
+  });
+  ok('tocar en el ranking lleva a la tarjeta de esa nina', centrada);
 
   /* 8. historial */
   console.log('-- historial');
@@ -237,10 +268,24 @@ function ok(nombre, condicion, detalle) {
     });
     ok('ningun boton se sale ni queda pequeno en ' + medida.width + 'px', dentro.length === 0, dentro.join(' | '));
   }
-  /* el ultimo boton se alcanza haciendo scroll y no queda bajo nada */
+  /* el ranking y el boton de nuevo dia se ven nada mas abrir, sin desplazar */
   await pag.setViewportSize(IPHONE);
-  await pag.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await pag.evaluate(() => window.scrollTo(0, 0));
   await pag.waitForTimeout(300);
+  const arribaDelTodo = await pag.evaluate(() => {
+    const r = document.getElementById('ranking').getBoundingClientRect();
+    const b = document.getElementById('btnNuevoDia').getBoundingClientRect();
+    const t = document.querySelector('.tarjeta').getBoundingClientRect();
+    const h = document.querySelector('.top').getBoundingClientRect();
+    return {
+      rankingVisible: r.top >= h.bottom - 1 && r.bottom <= window.innerHeight,
+      botonVisible: b.top >= h.bottom - 1 && b.bottom <= window.innerHeight,
+      rankingAntes: r.bottom <= b.top + 1 && b.bottom <= t.top + 1
+    };
+  });
+  ok('el ranking se ve sin desplazar', arribaDelTodo.rankingVisible);
+  ok('el boton de nuevo dia se ve sin desplazar', arribaDelTodo.botonVisible);
+  ok('orden: ranking, nuevo dia y luego las tarjetas', arribaDelTodo.rankingAntes);
   const tapado = await pag.evaluate(() => {
     const b = document.getElementById('btnNuevoDia');
     const r = b.getBoundingClientRect();
@@ -249,15 +294,13 @@ function ok(nombre, condicion, detalle) {
   });
   ok('el boton de nuevo dia queda accesible y sin tapar', !tapado);
 
-  /* la cabecera pegada no tapa la primera tarjeta */
-  await pag.evaluate(() => window.scrollTo(0, 0));
-  await pag.waitForTimeout(200);
+  /* la cabecera pegada no tapa lo primero de la pagina */
   const solape = await pag.evaluate(() => {
     const h = document.querySelector('.top').getBoundingClientRect();
-    const t = document.querySelector('.tarjeta').getBoundingClientRect();
-    return t.top < h.bottom - 1;
+    const p = document.getElementById('ranking').getBoundingClientRect();
+    return p.top < h.bottom - 1;
   });
-  ok('la cabecera no tapa la primera tarjeta', !solape);
+  ok('la cabecera no tapa el ranking', !solape);
 
   /* 15. PWA */
   console.log('-- PWA');

@@ -130,6 +130,29 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 .deshacer:active{background:#f0ece7}
 .deshacer[disabled]{opacity:.4;cursor:default}
 
+/* ---------- ranking ---------- */
+.ranking{padding:13px 14px 4px}
+.ranking h2{
+  margin:0 0 4px;font-size:1rem;font-weight:800;letter-spacing:-.01em;
+  display:flex;flex-direction:column;gap:2px;
+}
+.ranking h2 small{font-size:.74rem;font-weight:600;color:var(--suave);letter-spacing:0}
+.rank{
+  display:flex;width:100%;align-items:center;gap:10px;min-height:52px;
+  padding:9px 2px;border:0;border-top:1px solid #f2eee9;background:none;
+  font-family:inherit;color:inherit;text-align:left;
+}
+.rank:active{background:#faf7f4}
+.puesto{flex:0 0 30px;font-size:1.3rem;line-height:1;text-align:center}
+.puesto.igualados{font-size:1rem;color:var(--suave);font-weight:800}
+.rank .quien{flex:1;min-width:0;display:flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:800}
+.rank .punto{width:10px;height:10px;flex:0 0 10px;border-radius:50%;background:var(--acento)}
+.rank .marca{display:flex;align-items:center;gap:9px;font-size:1rem;font-weight:800;white-space:nowrap}
+.rank .marca span{display:inline-flex;align-items:center;gap:3px}
+.rank .sello{font-size:1.1rem}
+.rank.malva .marca{color:var(--rojo-osc)}
+.rank.buena .marca{color:var(--verde-osc)}
+
 /* ---------- pie ---------- */
 .bloque{
   background:#fff;border-radius:var(--r);box-shadow:var(--sombra);
@@ -195,6 +218,7 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 @media (min-width:760px){
   .envoltura{max-width:1120px;display:grid;grid-template-columns:repeat(3,1fr);gap:0 16px;align-items:start}
   #ninas{display:contents}
+  .arriba,
   .pie{grid-column:1 / -1;max-width:640px;width:100%;margin:0 auto}
 }
 </style>
@@ -208,6 +232,15 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 </header>
 
 <div class="envoltura">
+  <div class="arriba">
+    <section class="bloque ranking" id="ranking" aria-label="Ranking de hoy">
+      <h2>🏆 Ranking de hoy <small>gana quien más ⭐ lleva · desempata el ❤️</small></h2>
+      <div id="listaRanking"></div>
+    </section>
+
+    <button class="nuevodia" id="btnNuevoDia" type="button">🔄 EMPEZAR NUEVO DÍA</button>
+  </div>
+
   <main id="ninas"></main>
 
   <div class="pie">
@@ -216,7 +249,6 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
       <ul class="historial" id="historial"></ul>
     </details>
 
-    <button class="nuevodia" id="btnNuevoDia" type="button">🔄 EMPEZAR NUEVO DÍA</button>
     <p class="firma" id="firma"></p>
   </div>
 </div>
@@ -439,9 +471,40 @@ function pintar(){
     '</section>';
   }).join("");
   efectos = {};
+  pintarRanking();
   pintarHistorial();
   document.getElementById("btnSonido").textContent = estado.sonido ? "🔊" : "🔇";
   document.getElementById("firma").textContent = "Día " + estado.fecha + " · los datos se guardan en este móvil";
+}
+/* ranking del dia: primero las estrellas y, si empatan, quien conserva mas corazones */
+function pintarRanking(){
+  var cfg = estado.config;
+  var lista = NINAS.map(function(n){
+    var g = estado.ninas[n.id];
+    return { nina:n, g:g, puntos: g.estrellas * 100 + g.corazones };
+  });
+  lista.sort(function(a,b){ return b.puntos - a.puntos; });
+  var empateTotal = lista.every(function(x){ return x.puntos === lista[0].puntos; });
+  var puesto = 0, anterior = null;
+  lista.forEach(function(x,i){
+    if (anterior === null || x.puntos !== anterior){ puesto = i + 1; anterior = x.puntos; }
+    x.puesto = puesto;
+  });
+  var medallas = { 1:"🥇", 2:"🥈", 3:"🥉" };
+  document.getElementById("listaRanking").innerHTML = lista.map(function(x){
+    var castigada = x.g.corazones <= 0;
+    var premiada  = x.g.estrellas >= cfg.objetivo;
+    var sello = castigada ? '<span class="sello" title="Castigada">⛔</span>'
+              : premiada  ? '<span class="sello" title="Recompensa">🎁</span>' : '';
+    var marca = '<span>⭐ ' + x.g.estrellas + '</span><span>❤️ ' + x.g.corazones + '</span>';
+    return '<button class="rank' + (castigada ? " malva" : premiada ? " buena" : "") + '" type="button"' +
+             ' data-ir="' + x.nina.id + '" style="--acento:' + x.nina.acento + '">' +
+             '<span class="puesto' + (empateTotal ? " igualados" : "") + '">' +
+               (empateTotal ? "–" : (medallas[x.puesto] || x.puesto + "º")) + '</span>' +
+             '<span class="quien"><span class="punto"></span>' + x.nina.nombre + sello + '</span>' +
+             '<span class="marca">' + marca + '</span>' +
+           '</button>';
+  }).join("");
 }
 function pintarHistorial(){
   var ul = document.getElementById("historial");
@@ -553,6 +616,12 @@ document.addEventListener("click", function(e){
   var b = e.target && e.target.closest ? e.target.closest("button") : null;
   if (!b) return;
   if (b.hasAttribute("data-cerrar")) { cerrarHoja(); return; }
+  var ir = b.getAttribute("data-ir");
+  if (ir){
+    var t = document.querySelector('[data-tarjeta="' + ir + '"]');
+    if (t) t.scrollIntoView({ behavior:"smooth", block:"center" });
+    return;
+  }
   var acc = b.getAttribute("data-accion");
   if (acc === "bien" || acc === "mal") { apuntar(b.getAttribute("data-nina"), acc); return; }
   if (acc === "deshacer") { deshacer(b.getAttribute("data-nina")); return; }
