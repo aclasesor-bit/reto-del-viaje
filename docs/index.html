@@ -72,10 +72,12 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
   font-size:1.3rem;font-weight:800;letter-spacing:-.02em;
 }
 .inicial{
-  width:38px;height:38px;flex:0 0 38px;border-radius:50%;
+  width:42px;height:42px;flex:0 0 42px;border-radius:50%;
   background:var(--acento);color:#fff;font-size:1.05rem;font-weight:800;
-  display:flex;align-items:center;justify-content:center;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background-size:cover;background-position:center top;
 }
+.inicial.confoto{box-shadow:0 0 0 2.5px var(--acento), 0 0 0 4px #fff;color:transparent}
 .marcador{display:flex;flex-direction:column;gap:6px;margin-bottom:11px}
 .fila{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:36px}
 .pip{font-size:1.72rem;line-height:1.05;display:inline-block}
@@ -160,6 +162,10 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 .puesto.igualados{font-size:1rem;color:var(--suave);font-weight:800}
 .rank .quien{flex:1;min-width:0;display:flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:800}
 .rank .punto{width:10px;height:10px;flex:0 0 10px;border-radius:50%;background:var(--acento)}
+.rank .carita{
+  width:30px;height:30px;flex:0 0 30px;border-radius:50%;background-size:cover;background-position:center top;
+  box-shadow:0 0 0 2px var(--acento);
+}
 .rank .marca{display:flex;align-items:center;gap:9px;font-size:1rem;font-weight:800;white-space:nowrap}
 .rank .marca span{display:inline-flex;align-items:center;gap:3px}
 .rank .sello{font-size:1.1rem}
@@ -181,6 +187,20 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 .dia.castigo{background:var(--rojo-luz);color:var(--rojo-osc)}
 .dia.hoy{box-shadow:inset 0 0 0 2px var(--acento)}
 .dia.futuro{opacity:.4}
+.fotofila{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #f2eee9}
+.fotofila:first-of-type{border-top:0}
+.fotofila .inicial{width:52px;height:52px;flex:0 0 52px;font-size:1.15rem}
+.fotofila .quien{flex:1;min-width:0;font-weight:800;font-size:1.02rem}
+.fotofila label{
+  min-height:46px;border-radius:14px;border:1.5px solid var(--linea);background:#faf8f6;
+  display:flex;align-items:center;justify-content:center;padding:0 14px;
+  font-weight:700;font-size:.92rem;color:var(--suave);cursor:pointer;
+}
+.fotofila input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.fotofila .quitar{
+  min-height:46px;min-width:46px;border-radius:14px;border:1.5px solid var(--linea);
+  background:#faf8f6;font-size:1rem;font-family:inherit;
+}
 .codigo{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.35rem;font-weight:700;
   text-align:center;background:#f5f2ee;border-radius:14px;padding:14px 10px;margin:0 0 14px;
@@ -360,9 +380,9 @@ function semanaLaboral(){
 }
 
 /* ---------------- estado ---------------- */
-function docVacio(){ return { v:1, config:null, dias:{}, ts:0 }; }
+function docVacio(){ return { v:1, config:null, fotos:{}, dias:{}, ts:0 }; }
 function localVacio(){
-  return { familia:null, sonido:true, vista:"hoy", doc:docVacio(), cola:{ nuevos:[], borrados:[], config:null } };
+  return { familia:null, sonido:true, vista:"hoy", doc:docVacio(), cola:{ nuevos:[], borrados:[], config:null, fotos:null } };
 }
 function cfg(){
   var c = local.doc.config || {};
@@ -373,6 +393,45 @@ function cfg(){
     textoCastigo:    c.textoCastigo    || POR_DEFECTO.textoCastigo,
     ts: Number(c.ts) || 0
   };
+}
+var RE_FOTO = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+function fotoDe(ninaId){
+  var f = (local.doc.fotos || {})[ninaId];
+  var img = f && typeof f.img === "string" ? f.img : "";
+  return RE_FOTO.test(img) ? img : "";
+}
+function avatar(n, clase){
+  var img = fotoDe(n.id);
+  return '<span class="' + (clase || "inicial") + (img ? " confoto" : "") + '"' +
+         (img ? ' style="background-image:url(' + img + ')"' : '') + '>' + n.nombre.charAt(0) + '</span>';
+}
+function guardarFoto(ninaId, img){
+  local.doc.fotos = local.doc.fotos || {};
+  var reg = { img: img || "", ts: Date.now() };
+  local.doc.fotos[ninaId] = reg;
+  local.cola.fotos = local.cola.fotos || {};
+  local.cola.fotos[ninaId] = reg;
+  red = "pendiente";
+  guardar(); pintar(); pedirSync(0);
+}
+/* recorta al centro y deja una miniatura cuadrada pequena, que viaja por la red */
+function miniatura(fichero, hecho){
+  var lector = new FileReader();
+  lector.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      var lado = Math.min(im.width, im.height), L = 224;
+      var c = document.createElement("canvas");
+      c.width = L; c.height = L;
+      var g = c.getContext("2d");
+      g.drawImage(im, (im.width - lado) / 2, (im.height - lado) / 2 * 0.55, lado, lado, 0, 0, L, L);
+      hecho(c.toDataURL("image/jpeg", 0.82));
+    };
+    im.onerror = function(){ hecho(null); };
+    im.src = lector.result;
+  };
+  lector.onerror = function(){ hecho(null); };
+  lector.readAsDataURL(fichero);
 }
 function dia(d, crear){
   var x = local.doc.dias[d];
@@ -429,6 +488,7 @@ function cargar(){
   if (!g || typeof g !== "object") g = localVacio();
   var base = localVacio();
   g.doc = (g.doc && typeof g.doc === "object" && g.doc.dias) ? g.doc : base.doc;
+  g.doc.fotos = (g.doc.fotos && typeof g.doc.fotos === "object") ? g.doc.fotos : {};
   g.cola = (g.cola && typeof g.cola === "object") ? g.cola : base.cola;
   g.cola.nuevos = Array.isArray(g.cola.nuevos) ? g.cola.nuevos : [];
   g.cola.borrados = Array.isArray(g.cola.borrados) ? g.cola.borrados : [];
@@ -448,7 +508,7 @@ function pedirSync(retraso){
 }
 function hayPendiente(){
   var c = local.cola;
-  return !!(c.nuevos.length || c.borrados.length || c.config);
+  return !!(c.nuevos.length || c.borrados.length || c.config || c.fotos);
 }
 function aplicarCola(){
   local.cola.borrados.forEach(function(b){
@@ -463,13 +523,17 @@ function aplicarCola(){
     d.eventos.push({ id:ev.id, nina:ev.nina, tipo:ev.tipo, hora:ev.hora, ts:ev.ts });
   });
   if (local.cola.config) local.doc.config = local.cola.config;
+  if (local.cola.fotos){
+    local.doc.fotos = local.doc.fotos || {};
+    Object.keys(local.cola.fotos).forEach(function(k){ local.doc.fotos[k] = local.cola.fotos[k]; });
+  }
 }
 function sincronizar(){
   if (!local.familia || !window.fetch) return;
   if (sincronizando){ otraVuelta = true; return; }   /* que no se pierda lo apuntado mientras se enviaba lo anterior */
   var c = local.cola;
-  var nN = c.nuevos.length, nB = c.borrados.length, conf = c.config;
-  var manda = nN || nB || conf;
+  var nN = c.nuevos.length, nB = c.borrados.length, conf = c.config, fotos = c.fotos;
+  var manda = nN || nB || conf || fotos;
   sincronizando = true;
   if (manda) { red = "enviando"; pintarSync(); }
   var url = API + "/f/" + encodeURIComponent(local.familia);
@@ -477,7 +541,7 @@ function sincronizar(){
     ? fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nuevos: c.nuevos.slice(0, nN), borrados: c.borrados.slice(0, nB), config: conf || undefined })
+        body: JSON.stringify({ nuevos: c.nuevos.slice(0, nN), borrados: c.borrados.slice(0, nB), config: conf || undefined, fotos: fotos || undefined })
       })
     : fetch(url, { cache: "no-store" });
 
@@ -488,6 +552,7 @@ function sincronizar(){
       c.nuevos.splice(0, nN);
       c.borrados.splice(0, nB);
       if (conf && c.config === conf) c.config = null;
+      if (fotos && c.fotos === fotos) c.fotos = null;
       local.doc = doc;
       aplicarCola();
       red = hayPendiente() ? "pendiente" : "ok";
@@ -625,7 +690,7 @@ function pintar(){
 
     return '' +
     '<section class="' + clases + '" style="--acento:' + n.acento + '" data-tarjeta="' + n.id + '">' +
-      '<h2 class="nombre"><span class="inicial">' + n.nombre.charAt(0) + '</span>' + n.nombre + '</h2>' +
+      '<h2 class="nombre">' + avatar(n) + n.nombre + '</h2>' +
       '<div class="marcador">' +
         '<div class="fila" data-corazones>' + corazones + '<span class="cuenta" data-cuenta-corazones>' + m.corazones + ' / ' + c.oportunidades + '</span></div>' +
         '<div class="fila" data-estrellas>' + estrellas + '<span class="cuenta" data-cuenta-estrellas>' + m.estrellas + ' / ' + c.objetivo + '</span></div>' +
@@ -688,7 +753,7 @@ function htmlHoy(){
     return '<button class="rank' + (x.castigada ? " malva" : x.premiada ? " buena" : "") + '" type="button"' +
              ' data-ir="' + x.nina.id + '" style="--acento:' + x.nina.acento + '">' +
              medalla(x) +
-             '<span class="quien"><span class="punto"></span>' + x.nina.nombre + sello + '</span>' +
+             '<span class="quien">' + (fotoDe(x.nina.id) ? avatar(x.nina, "carita") : '<span class="punto"></span>') + x.nina.nombre + sello + '</span>' +
              '<span class="marca"><span>⭐ ' + x.estrellas + '</span><span>❤️ ' + x.corazones + '</span></span>' +
            '</button>';
   }).join("");
@@ -724,7 +789,7 @@ function htmlSemana(){
     return '<div class="semanera" style="--acento:' + x.nina.acento + '">' +
              '<button class="rank" type="button" data-ir="' + x.nina.id + '">' +
                medalla(x) +
-               '<span class="quien"><span class="punto"></span>' + x.nina.nombre + sellos + '</span>' +
+               '<span class="quien">' + (fotoDe(x.nina.id) ? avatar(x.nina, "carita") : '<span class="punto"></span>') + x.nina.nombre + sellos + '</span>' +
                '<span class="marca"><span>⭐ ' + x.estrellas + '</span><span>💔 ' + x.perdidos + '</span></span>' +
              '</button>' +
              '<div class="dias">' + chips + '</div>' +
@@ -829,6 +894,7 @@ function abrirAjustes(){
     '<div class="campo"><label for="cfgRe">🎁 Texto de la recompensa</label><input id="cfgRe" type="text" maxlength="60" value="' + esc(c.textoRecompensa) + '"></div>' +
     '<div class="campo"><label for="cfgCa">⛔ Texto del castigo</label><input id="cfgCa" type="text" maxlength="30" value="' + esc(c.textoCastigo) + '"></div>' +
     '<button class="grande bien" type="button" id="cfgGuardar">GUARDAR</button>' +
+    '<button class="secundario" type="button" id="cfgFotos">📷 Fotos de las niñas</button>' +
     '<button class="secundario" type="button" id="cfgCompartir">📲 Compartir con el otro móvil</button>' +
     '<button class="secundario" type="button" data-cerrar>Cancelar</button>'
   );
@@ -842,6 +908,36 @@ function abrirAjustes(){
     cerrarHoja();
   });
   document.getElementById("cfgCompartir").addEventListener("click", abrirCompartir);
+  document.getElementById("cfgFotos").addEventListener("click", abrirFotos);
+}
+function abrirFotos(){
+  abrirHoja('' +
+    '<h2>📷 Fotos de las niñas</h2>' +
+    '<p class="sub">Sale en su tarjeta y en el ranking. La foto se guarda pequeña y solo la ven los móviles con vuestro código: no se publica en ningún sitio.</p>' +
+    NINAS.map(function(n){
+      return '<div class="fotofila" style="--acento:' + n.acento + '" data-fotofila="' + n.id + '">' +
+               avatar(n) +
+               '<span class="quien">' + n.nombre + '</span>' +
+               '<label for="foto-' + n.id + '" data-elegir="' + n.id + '">' + (fotoDe(n.id) ? "Cambiar" : "Elegir foto") + '</label>' +
+               '<input type="file" id="foto-' + n.id + '" accept="image/*" data-foto="' + n.id + '">' +
+               (fotoDe(n.id) ? '<button class="quitar" type="button" data-quitarfoto="' + n.id + '" aria-label="Quitar la foto">🗑️</button>' : '') +
+             '</div>';
+    }).join("") +
+    '<button class="grande bien" type="button" data-cerrar style="margin-top:16px">LISTO</button>'
+  );
+  Array.prototype.forEach.call(hoja.querySelectorAll("input[type=file]"), function(inp){
+    inp.addEventListener("change", function(){
+      var f = inp.files && inp.files[0];
+      if (!f) return;
+      var etiqueta = hoja.querySelector('[data-elegir="' + inp.getAttribute("data-foto") + '"]');
+      if (etiqueta) etiqueta.textContent = "Un momento…";
+      miniatura(f, function(dato){
+        if (!dato){ if (etiqueta) etiqueta.textContent = "No se pudo leer"; return; }
+        guardarFoto(inp.getAttribute("data-foto"), dato);
+        abrirFotos();
+      });
+    });
+  });
 }
 function enlaceDeFamilia(){
   return location.origin + location.pathname + "?f=" + encodeURIComponent(local.familia);
@@ -920,6 +1016,8 @@ document.addEventListener("click", function(e){
   if (b.id === "btnNuevoDia") { confirmarNuevoDia(); return; }
   if (b.id === "btnAjustes")  { abrirAjustes(); return; }
   if (b.id === "btnSync")     { abrirCompartir(); return; }
+  var quitar = b.getAttribute("data-quitarfoto");
+  if (quitar){ guardarFoto(quitar, ""); abrirFotos(); return; }
   if (b.id === "btnSonido")   {
     local.sonido = !local.sonido; guardar();
     b.textContent = local.sonido ? "🔊" : "🔇";

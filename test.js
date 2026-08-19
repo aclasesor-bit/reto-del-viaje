@@ -299,6 +299,54 @@ async function esperarA(fn, ms, cada) {
   await pag.locator('[data-cerrar]').click();
   await pag.waitForTimeout(250);
 
+  /* 14 bis. fotos de las ninas */
+  console.log('-- fotos');
+  const ficheroFoto = path.join(__dirname, 'capturas', 'foto-prueba.jpg');
+  await pag.locator('#btnAjustes').click();
+  await pag.waitForTimeout(350);
+  await pag.locator('#cfgFotos').click();
+  await pag.waitForTimeout(300);
+  ok('hay una fila por nina para poner su foto', (await pag.locator('[data-fotofila]').count()) === 3);
+  ok('de partida sale la inicial y no una foto', (await pag.locator('.fotofila .inicial.confoto').count()) === 0);
+  await pag.locator('input[data-foto="paula"]').setInputFiles(ficheroFoto);
+  await esperarA(async () => (await pag.locator('.fotofila .inicial.confoto').count()) === 1, 8000);
+  ok('al elegir una foto se ve en el panel', (await pag.locator('.fotofila .inicial.confoto').count()) === 1);
+  await pag.locator('[data-cerrar]').first().click();
+  await pag.waitForTimeout(300);
+  const avatarPaula = await tarjeta('paula').locator('.inicial').getAttribute('style');
+  ok('la miniatura sale en la tarjeta de Paula', !!avatarPaula && /data:image\/jpeg;base64,/.test(avatarPaula));
+  ok('solo cambia la de Paula', !(await tarjeta('valeria').locator('.inicial').getAttribute('style') || '').match(/data:image/));
+  ok('y tambien en el ranking', (await pag.locator('#listaRanking .rank', { hasText: 'Paula' }).locator('.carita').count()) === 1);
+  const tam = await pag.evaluate(() => {
+    const f = JSON.parse(localStorage.getItem('reto-del-viaje-v2')).doc.fotos.paula;
+    return f.img.length;
+  });
+  ok('la miniatura pesa poco (' + Math.round(tam / 1024) + ' KB)', tam > 500 && tam < 90000);
+  ok('la foto llega al servidor', await esperarA(async () => {
+    const d = await (await fetch(API + '/f/' + FAMILIA)).json();
+    return d.fotos && d.fotos.paula && /^data:image\/jpeg;base64,/.test(d.fotos.paula.img);
+  }, 12000));
+
+  const ctxF = await navegador.newContext(CONTEXTO);
+  const movilF = await ctxF.newPage();
+  await movilF.goto(conFamilia(FAMILIA), { waitUntil: 'load' });
+  ok('el otro movil ve la foto sin hacer nada', await esperarA(async () => {
+    const st = await movilF.locator('[data-tarjeta="paula"] .inicial').getAttribute('style');
+    return !!st && /data:image/.test(st);
+  }, 12000));
+  await movilF.close(); await ctxF.close();
+
+  await pag.locator('#btnAjustes').click();
+  await pag.waitForTimeout(300);
+  await pag.locator('#cfgFotos').click();
+  await pag.waitForTimeout(300);
+  await pag.locator('[data-quitarfoto="paula"]').click();
+  await pag.waitForTimeout(500);
+  ok('se puede quitar la foto', (await pag.locator('.fotofila .inicial.confoto').count()) === 0);
+  await pag.locator('[data-cerrar]').first().click();
+  await pag.waitForTimeout(300);
+  ok('al quitarla vuelve la inicial', !((await tarjeta('paula').locator('.inicial').getAttribute('style')) || '').match(/data:image/));
+
   /* 15. ajustes */
   console.log('-- ajustes');
   await pag.locator('#btnAjustes').click();

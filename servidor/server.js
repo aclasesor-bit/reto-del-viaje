@@ -15,7 +15,7 @@ const PUERTO = Number(process.env.PUERTO || 8091);
 const DATOS = process.env.DATOS || path.join(__dirname, 'datos');
 const BASE = '/reto-api';
 const DIAS_GUARDADOS = 28;
-const MAX_CUERPO = 512 * 1024;
+const MAX_CUERPO = 1024 * 1024;   // las fotos en miniatura viajan aqui dentro
 const MAX_EVENTOS_DIA = 2000;
 
 fs.mkdirSync(DATOS, { recursive: true });
@@ -27,13 +27,14 @@ const recorta = (s, n) => String(s == null ? '' : s).slice(0, n);
 
 function ficheroDe(familia) { return path.join(DATOS, familia + '.json'); }
 
-function docVacio() { return { v: 1, config: null, dias: {}, ts: 0 }; }
+function docVacio() { return { v: 1, config: null, fotos: {}, dias: {}, ts: 0 }; }
 
 function leer(familia) {
   try {
     const doc = JSON.parse(fs.readFileSync(ficheroDe(familia), 'utf8'));
     if (!doc || typeof doc !== 'object') return docVacio();
     doc.dias = doc.dias && typeof doc.dias === 'object' ? doc.dias : {};
+    doc.fotos = doc.fotos && typeof doc.fotos === 'object' ? doc.fotos : {};
     return doc;
   } catch (e) { return docVacio(); }
 }
@@ -80,6 +81,19 @@ function fusionar(doc, cambios) {
         ts: ts
       };
     }
+  }
+  if (cambios.fotos && typeof cambios.fotos === 'object') {
+    doc.fotos = doc.fotos || {};
+    Object.keys(cambios.fotos).slice(0, 10).forEach(k => {
+      const f = cambios.fotos[k];
+      if (!f || typeof f !== 'object') return;
+      const nina = recorta(k, 24);
+      const ts = Number(f.ts) || 0;
+      const img = typeof f.img === 'string' ? f.img.slice(0, 90000) : '';
+      if (img && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(img)) return;
+      const actual = doc.fotos[nina];
+      if (!actual || ts > (Number(actual.ts) || 0)) doc.fotos[nina] = { img: img, ts: ts };
+    });
   }
   const dia = d => doc.dias[d] || (doc.dias[d] = { eventos: [], borrados: [] });
 
