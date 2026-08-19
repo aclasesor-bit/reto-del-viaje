@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>El Reto del Viaje</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+<meta name="theme-color" content="#fbf7f2">
+<meta name="description" content="Juego de comportamiento para Valeria, Alejandra y Paula.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="El Reto">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg1:#fdf7f1; --bg2:#eef4fb;
+  --tinta:#2c3244; --suave:#6b7385; --linea:#e9e3dc;
+  --verde:#2e9c6b; --verde-osc:#237a53; --verde-luz:#e6f6ee;
+  --rojo:#e0574f; --rojo-osc:#b9433c; --rojo-luz:#fdeceb;
+  --r:22px;
+  --sombra:0 6px 18px rgba(44,50,68,.08), 0 1px 3px rgba(44,50,68,.06);
+}
+html,body{margin:0;padding:0;overflow-x:hidden;max-width:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,"Helvetica Neue",Arial,sans-serif;
+  color:var(--tinta);
+  background:linear-gradient(170deg,var(--bg1) 0%,var(--bg2) 100%);
+  background-attachment:fixed;
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+  padding:0 0 env(safe-area-inset-bottom);
+}
+button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user-select:none;user-select:none}
+.envoltura{max-width:640px;margin:0 auto;padding:0 14px 40px}
+
+/* ---------- cabecera ---------- */
+.top{
+  position:sticky;top:0;z-index:30;
+  display:flex;align-items:center;gap:8px;
+  padding:calc(env(safe-area-inset-top) + 12px) 14px 12px;
+  background:rgba(253,247,241,.92);
+  -webkit-backdrop-filter:saturate(180%) blur(12px);
+  backdrop-filter:saturate(180%) blur(12px);
+  border-bottom:1px solid var(--linea);
+}
+.top h1{
+  flex:1;min-width:0;margin:0;font-size:1.2rem;line-height:1.15;font-weight:800;letter-spacing:-.02em;
+}
+.top h1 small{display:block;font-size:.72rem;font-weight:600;color:var(--suave);margin-top:2px}
+.icono{
+  width:46px;height:46px;flex:0 0 46px;border-radius:14px;border:1px solid var(--linea);
+  background:#fff;font-size:1.2rem;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 2px rgba(44,50,68,.06);
+}
+.icono:active{transform:scale(.94)}
+
+/* ---------- tarjeta ---------- */
+.tarjeta{
+  background:#fff;border-radius:var(--r);box-shadow:var(--sombra);
+  padding:14px 15px 15px;margin-top:12px;border:1px solid rgba(233,227,220,.9);
+  position:relative;overflow:hidden;
+}
+.tarjeta::before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:var(--acento)}
+.tarjeta.castigada{background:#fff6f5;border-color:#f6cfcc}
+.tarjeta.premiada{background:#f6fdf9;border-color:#c9ecd9}
+.nombre{
+  display:flex;align-items:center;gap:9px;margin:4px 0 10px;
+  font-size:1.3rem;font-weight:800;letter-spacing:-.02em;
+}
+.inicial{
+  width:38px;height:38px;flex:0 0 38px;border-radius:50%;
+  background:var(--acento);color:#fff;font-size:1.05rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+}
+.marcador{display:flex;flex-direction:column;gap:6px;margin-bottom:11px}
+.fila{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:36px}
+.pip{font-size:1.72rem;line-height:1.05;display:inline-block}
+.pip.vacio{filter:grayscale(1);opacity:.24}
+.cuenta{
+  margin-left:auto;font-size:.85rem;font-weight:700;color:var(--suave);
+  background:#f5f2ee;border-radius:999px;padding:4px 11px;white-space:nowrap;
+}
+@keyframes romper{0%{transform:scale(1) rotate(0)}25%{transform:scale(1.45) rotate(-14deg)}60%{transform:scale(.7) rotate(12deg);opacity:.5}100%{transform:scale(1) rotate(0)}}
+@keyframes brotar{0%{transform:scale(.2) rotate(-40deg);opacity:0}55%{transform:scale(1.45) rotate(10deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+.pip.rompe{animation:romper .55s ease}
+.pip.brota{animation:brotar .55s cubic-bezier(.22,1.2,.4,1)}
+@keyframes temblar{0%,100%{transform:translateX(0)}15%{transform:translateX(-7px)}30%{transform:translateX(6px)}45%{transform:translateX(-5px)}60%{transform:translateX(4px)}80%{transform:translateX(-2px)}}
+.tarjeta.tiembla{animation:temblar .5s ease}
+@keyframes saltar{0%,100%{transform:translateY(0)}35%{transform:translateY(-7px)}70%{transform:translateY(0)}}
+.tarjeta.salta{animation:saltar .45s ease}
+
+/* ---------- avisos ---------- */
+@keyframes entrar{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.aviso{
+  display:flex;align-items:center;gap:9px;border-radius:16px;padding:10px 12px;margin-bottom:10px;
+  font-weight:800;font-size:1rem;line-height:1.25;animation:entrar .3s ease;
+}
+.aviso .emo{font-size:1.6rem;line-height:1}
+.aviso.mal{background:var(--rojo-luz);color:var(--rojo-osc);border:1px solid #f6cfcc}
+.aviso.bien{background:var(--verde-luz);color:var(--verde-osc);border:1px solid #c9ecd9}
+@keyframes penar{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg) translateY(2px)}75%{transform:rotate(7deg) translateY(2px)}}
+.aviso.mal .emo{animation:penar 1.9s ease-in-out infinite}
+@keyframes latir{0%,100%{transform:scale(1)}40%{transform:scale(1.22)}}
+.aviso.bien .emo{animation:latir 1.3s ease-in-out infinite}
+
+/* ---------- botones ---------- */
+.acciones{display:flex;flex-direction:column;gap:8px}
+.grande{
+  width:100%;min-height:60px;border:0;border-radius:18px;
+  font-size:1.05rem;font-weight:800;color:#fff;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  padding:10px 12px;text-align:center;line-height:1.15;
+  box-shadow:0 4px 0 var(--sombra-btn), 0 6px 14px rgba(44,50,68,.13);
+  transition:transform .07s ease, box-shadow .07s ease;
+}
+.grande .em{font-size:1.3rem}
+.grande:active{transform:translateY(3px);box-shadow:0 1px 0 var(--sombra-btn),0 3px 8px rgba(44,50,68,.13)}
+.grande[disabled]{opacity:.42;box-shadow:none;transform:none;cursor:default}
+.bien{background:var(--verde);--sombra-btn:var(--verde-osc)}
+.mal{background:var(--rojo);--sombra-btn:var(--rojo-osc)}
+.deshacer{
+  width:100%;min-height:48px;border-radius:15px;border:1.5px solid var(--linea);
+  background:#faf8f6;color:var(--suave);font-size:.98rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.deshacer:active{background:#f0ece7}
+.deshacer[disabled]{opacity:.4;cursor:default}
+
+/* ---------- pie ---------- */
+.bloque{
+  background:#fff;border-radius:var(--r);box-shadow:var(--sombra);
+  border:1px solid rgba(233,227,220,.9);margin-top:16px;overflow:hidden;
+}
+.bloque > summary{
+  list-style:none;cursor:pointer;padding:16px;font-weight:800;font-size:1rem;
+  display:flex;align-items:center;gap:9px;min-height:56px;
+}
+.bloque > summary::-webkit-details-marker{display:none}
+.bloque > summary .flecha{margin-left:auto;color:var(--suave);font-size:.9rem;transition:transform .2s}
+.bloque[open] > summary .flecha{transform:rotate(180deg)}
+.historial{list-style:none;margin:0;padding:0 16px 8px;max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.historial li{
+  display:flex;align-items:center;gap:9px;padding:11px 0;border-top:1px solid #f2eee9;
+  font-size:.95rem;line-height:1.3;
+}
+.historial li .hora{color:var(--suave);font-variant-numeric:tabular-nums;font-size:.86rem;flex:0 0 auto}
+.historial li .quien{font-weight:700}
+.historial .vacio{color:var(--suave);padding:14px 0;border:0}
+.nuevodia{
+  width:100%;min-height:62px;margin-top:16px;border-radius:18px;border:1.5px solid #d9d2ca;
+  background:#fff;color:var(--tinta);font-size:1.02rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:var(--sombra);
+}
+.nuevodia:active{transform:translateY(2px)}
+.firma{text-align:center;color:var(--suave);font-size:.78rem;margin:18px 0 0;line-height:1.5}
+
+/* ---------- panel inferior ---------- */
+.velo{
+  position:fixed;inset:0;z-index:60;background:rgba(30,34,46,.45);
+  display:flex;align-items:flex-end;justify-content:center;
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+}
+.velo[hidden]{display:none}
+@keyframes subir{from{transform:translateY(100%)}to{transform:none}}
+.hoja{
+  width:100%;max-width:640px;background:#fff;border-radius:26px 26px 0 0;
+  padding:20px 18px calc(env(safe-area-inset-bottom) + 20px);
+  max-height:92vh;overflow-y:auto;animation:subir .26s cubic-bezier(.2,.9,.3,1);
+}
+.hoja h2{margin:0 0 4px;font-size:1.2rem;font-weight:800;letter-spacing:-.02em}
+.hoja p.sub{margin:0 0 16px;color:var(--suave);font-size:.92rem;line-height:1.45}
+.campo{margin-bottom:15px}
+.campo label{display:block;font-weight:700;font-size:.92rem;margin-bottom:7px}
+.campo input{
+  width:100%;min-height:54px;border-radius:14px;border:1.5px solid var(--linea);
+  padding:12px 14px;font-size:1.05rem;font-family:inherit;color:var(--tinta);background:#fbf9f7;
+}
+.campo input:focus{outline:none;border-color:#b9c2d4;background:#fff}
+.numeros{display:flex;gap:10px}
+.numeros .campo{flex:1;min-width:0}
+.hoja .grande{margin-top:6px}
+.hoja .secundario{
+  width:100%;min-height:56px;margin-top:10px;border-radius:16px;border:1.5px solid var(--linea);
+  background:#faf8f6;font-size:1rem;font-weight:700;color:var(--suave);font-family:inherit;
+}
+#confeti{position:fixed;inset:0;z-index:80;pointer-events:none}
+#confeti[hidden]{display:none}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms !important;animation-iteration-count:1 !important}
+}
+@media (min-width:760px){
+  .envoltura{max-width:1120px;display:grid;grid-template-columns:repeat(3,1fr);gap:0 16px;align-items:start}
+  #ninas{display:contents}
+  .pie{grid-column:1 / -1;max-width:640px;width:100%;margin:0 auto}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>El Reto del Viaje <small>Valeria · Alejandra · Paula</small></h1>
+  <button class="icono" id="btnSonido" type="button" aria-label="Sonido">🔊</button>
+  <button class="icono" id="btnAjustes" type="button" aria-label="Ajustes">⚙️</button>
+</header>
+
+<div class="envoltura">
+  <main id="ninas"></main>
+
+  <div class="pie">
+    <details class="bloque" id="bloqueHistorial">
+      <summary>📜 Historial de hoy <span class="flecha" aria-hidden="true">▼</span></summary>
+      <ul class="historial" id="historial"></ul>
+    </details>
+
+    <button class="nuevodia" id="btnNuevoDia" type="button">🔄 EMPEZAR NUEVO DÍA</button>
+    <p class="firma" id="firma"></p>
+  </div>
+</div>
+
+<canvas id="confeti" hidden></canvas>
+
+<div class="velo" id="velo" hidden>
+  <div class="hoja" id="hoja"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var CLAVE = "reto-del-viaje-v1";
+var NINAS = [
+  { id:"valeria",   nombre:"Valeria",   acento:"#e46a8b" },
+  { id:"alejandra", nombre:"Alejandra", acento:"#7b6cd9" },
+  { id:"paula",     nombre:"Paula",     acento:"#2aa8a8" }
+];
+var POR_DEFECTO = {
+  oportunidades: 5,
+  objetivo: 5,
+  textoRecompensa: "¡Premio especial!",
+  textoCastigo: "Castigada"
+};
+
+var estado = null;
+
+function hoy(){
+  var d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function ahora(){
+  var d = new Date();
+  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+function limitar(v, min, max, porDefecto){
+  if (typeof v !== "number" || isNaN(v)) v = (porDefecto === undefined ? min : porDefecto);
+  return Math.max(min, Math.min(max, v));
+}
+function nuevasNinas(cfg){
+  var o = {};
+  NINAS.forEach(function(n){ o[n.id] = { corazones: cfg.oportunidades, estrellas: 0 }; });
+  return o;
+}
+function estadoInicial(){
+  var c = JSON.parse(JSON.stringify(POR_DEFECTO));
+  return { fecha: hoy(), config: c, sonido: true, ninas: nuevasNinas(c), historial: [] };
+}
+function cargar(){
+  var e = null;
+  try { e = JSON.parse(localStorage.getItem(CLAVE) || "null"); } catch(err){ e = null; }
+  if (!e || typeof e !== "object") return estadoInicial();
+  var cfg = {
+    oportunidades: limitar(parseInt((e.config||{}).oportunidades,10), 1, 10, POR_DEFECTO.oportunidades),
+    objetivo:      limitar(parseInt((e.config||{}).objetivo,10),      1, 10, POR_DEFECTO.objetivo),
+    textoRecompensa: ((e.config||{}).textoRecompensa || POR_DEFECTO.textoRecompensa),
+    textoCastigo:    ((e.config||{}).textoCastigo    || POR_DEFECTO.textoCastigo)
+  };
+  var s = {
+    fecha: e.fecha || hoy(),
+    config: cfg,
+    sonido: e.sonido !== false,
+    ninas: {},
+    historial: Array.isArray(e.historial) ? e.historial : []
+  };
+  NINAS.forEach(function(n){
+    var g = (e.ninas && e.ninas[n.id]) || {};
+    s.ninas[n.id] = {
+      corazones: limitar(parseInt(g.corazones,10), 0, cfg.oportunidades, cfg.oportunidades),
+      estrellas: limitar(parseInt(g.estrellas,10), 0, 999, 0)
+    };
+  });
+  return s;
+}
+function guardar(){
+  try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch(err){}
+}
+function comprobarDia(){
+  if (estado.fecha !== hoy()){
+    estado.fecha = hoy();
+    estado.ninas = nuevasNinas(estado.config);
+    estado.historial = [];
+    guardar();
+    return true;
+  }
+  return false;
+}
+
+/* ---------------- sonido ---------------- */
+var ctxAudio = null;
+function audio(){
+  if (!estado.sonido) return null;
+  try {
+    if (!ctxAudio){
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctxAudio = new AC();
+    }
+    if (ctxAudio.state === "suspended") ctxAudio.resume();
+    return ctxAudio;
+  } catch(err){ return null; }
+}
+function nota(ctx, hz, inicio, dur, vol, tipo){
+  try {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = tipo || "sine";
+    o.frequency.setValueAtTime(hz, ctx.currentTime + inicio);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime + inicio);
+    g.gain.exponentialRampToValueAtTime(vol, ctx.currentTime + inicio + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + inicio + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(ctx.currentTime + inicio);
+    o.stop(ctx.currentTime + inicio + dur + 0.03);
+  } catch(err){}
+}
+function sonar(cual){
+  var ctx = audio(); if (!ctx) return;
+  if (cual === "bien"){ nota(ctx, 660, 0, .13, .18); nota(ctx, 880, .1, .18, .16); }
+  else if (cual === "mal"){ nota(ctx, 300, 0, .16, .16, "triangle"); nota(ctx, 180, .13, .26, .15, "triangle"); }
+  else if (cual === "premio"){ [523,659,784,1046,1318].forEach(function(f,i){ nota(ctx, f, i*.09, .3, .16, "triangle"); }); }
+  else if (cual === "castigo"){ [392,349,294,220].forEach(function(f,i){ nota(ctx, f, i*.14, .34, .16, "sawtooth"); }); }
+  else if (cual === "deshacer"){ nota(ctx, 520, 0, .1, .1); }
+}
+
+/* ---------------- confeti ---------------- */
+var lienzo = document.getElementById("confeti"), cctx = null, trozos = [], animando = false, tempConfeti = null;
+function confeti(){
+  if (!lienzo.getContext) return;
+  cctx = cctx || lienzo.getContext("2d");
+  lienzo.hidden = false;
+  var r = window.devicePixelRatio || 1;
+  lienzo.width = window.innerWidth * r; lienzo.height = window.innerHeight * r;
+  lienzo.style.width = window.innerWidth + "px"; lienzo.style.height = window.innerHeight + "px";
+  cctx.setTransform(r,0,0,r,0,0);
+  var colores = ["#e46a8b","#7b6cd9","#2aa8a8","#f0a92c","#2e9c6b","#e0574f"];
+  for (var i=0;i<140;i++){
+    trozos.push({
+      x: Math.random()*window.innerWidth,
+      y: -20 - Math.random()*window.innerHeight*0.5,
+      an: 6 + Math.random()*7, al: 9 + Math.random()*10,
+      vy: 2.2 + Math.random()*3.4, vx: -1.4 + Math.random()*2.8,
+      giro: Math.random()*Math.PI, vgiro: -0.16 + Math.random()*0.32,
+      color: colores[i % colores.length]
+    });
+  }
+  if (!animando){ animando = true; requestAnimationFrame(pintarConfeti); }
+  clearTimeout(tempConfeti);
+  tempConfeti = setTimeout(function(){ trozos = []; }, 3400);
+}
+function pintarConfeti(){
+  cctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+  for (var i=trozos.length-1;i>=0;i--){
+    var p = trozos[i];
+    p.x += p.vx; p.y += p.vy; p.giro += p.vgiro; p.vy += 0.02;
+    if (p.y > window.innerHeight + 30){ trozos.splice(i,1); continue; }
+    cctx.save(); cctx.translate(p.x,p.y); cctx.rotate(p.giro);
+    cctx.fillStyle = p.color; cctx.fillRect(-p.an/2, -p.al/2, p.an, p.al);
+    cctx.restore();
+  }
+  if (trozos.length){ requestAnimationFrame(pintarConfeti); }
+  else { animando = false; lienzo.hidden = true; }
+}
+
+/* ---------------- pintado ---------------- */
+var cont = document.getElementById("ninas");
+var efectos = {};
+
+function esc(t){
+  return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function ultimaDe(id){
+  for (var i=estado.historial.length-1;i>=0;i--){ if (estado.historial[i].nina === id) return i; }
+  return -1;
+}
+function pintar(){
+  var cfg = estado.config;
+  cont.innerHTML = NINAS.map(function(n){
+    var g = estado.ninas[n.id];
+    var castigada = g.corazones <= 0;
+    var premiada  = g.estrellas >= cfg.objetivo;
+    var fx = efectos[n.id];
+    var corazones = "", estrellas = "", i;
+    for (i=0;i<cfg.oportunidades;i++){
+      var vivo = i < g.corazones;
+      var animar = fx && fx.tipo === "pierde" && i === g.corazones;
+      corazones += '<span class="pip' + (vivo ? "" : " vacio") + (animar ? " rompe" : "") + '">' + (vivo ? "❤️" : "🖤") + '</span>';
+    }
+    var tope = Math.max(cfg.objetivo, g.estrellas);
+    for (i=0;i<tope;i++){
+      var llena = i < g.estrellas;
+      var brota = fx && fx.tipo === "gana" && i === g.estrellas - 1;
+      estrellas += '<span class="pip' + (llena ? "" : " vacio") + (brota ? " brota" : "") + '">⭐</span>';
+    }
+    var aviso = "";
+    if (castigada) {
+      aviso = '<div class="aviso mal" data-castigada><span class="emo">😢</span><span>⛔ ' + esc(cfg.textoCastigo).toUpperCase() + '</span></div>';
+    } else if (premiada) {
+      aviso = '<div class="aviso bien" data-premiada><span class="emo">🎁</span><span>¡HAS CONSEGUIDO UNA RECOMPENSA! ' + esc(cfg.textoRecompensa) + '</span></div>';
+    }
+    var puedeDeshacer = ultimaDe(n.id) >= 0;
+    var clases = "tarjeta" + (castigada ? " castigada" : "") + (premiada ? " premiada" : "");
+    if (fx && fx.tipo === "pierde") clases += " tiembla";
+    if (fx && fx.tipo === "gana")   clases += " salta";
+
+    return '' +
+    '<section class="' + clases + '" style="--acento:' + n.acento + '" data-tarjeta="' + n.id + '">' +
+      '<h2 class="nombre"><span class="inicial">' + n.nombre.charAt(0) + '</span>' + n.nombre + '</h2>' +
+      '<div class="marcador">' +
+        '<div class="fila" data-corazones>' + corazones + '<span class="cuenta" data-cuenta-corazones>' + g.corazones + ' / ' + cfg.oportunidades + '</span></div>' +
+        '<div class="fila" data-estrellas>' + estrellas + '<span class="cuenta" data-cuenta-estrellas>' + g.estrellas + ' / ' + cfg.objetivo + '</span></div>' +
+      '</div>' +
+      aviso +
+      '<div class="acciones">' +
+        '<button class="grande bien" type="button" data-accion="bien" data-nina="' + n.id + '"><span class="em">🟢</span> SE HA PORTADO BIEN</button>' +
+        '<button class="grande mal" type="button" data-accion="mal" data-nina="' + n.id + '"' + (castigada ? " disabled" : "") + '><span class="em">🔴</span> SE HA PORTADO MAL</button>' +
+        '<button class="deshacer" type="button" data-accion="deshacer" data-nina="' + n.id + '"' + (puedeDeshacer ? "" : " disabled") + '>↩️ Deshacer última acción</button>' +
+      '</div>' +
+    '</section>';
+  }).join("");
+  efectos = {};
+  pintarHistorial();
+  document.getElementById("btnSonido").textContent = estado.sonido ? "🔊" : "🔇";
+  document.getElementById("firma").textContent = "Día " + estado.fecha + " · los datos se guardan en este móvil";
+}
+function pintarHistorial(){
+  var ul = document.getElementById("historial");
+  if (!estado.historial.length){
+    ul.innerHTML = '<li class="vacio">Todavía no hay nada apuntado hoy.</li>';
+    return;
+  }
+  ul.innerHTML = estado.historial.slice().reverse().map(function(h){
+    var n = NINAS.filter(function(x){ return x.id === h.nina; })[0];
+    var txt = h.tipo === "bien" ? "⭐ Buena acción" : "💔 Perdió una oportunidad";
+    return '<li><span class="hora">' + esc(h.hora) + '</span><span class="quien">' + esc(n ? n.nombre : h.nina) + '</span><span>' + txt + '</span></li>';
+  }).join("");
+}
+
+/* ---------------- acciones ---------------- */
+function apuntar(id, tipo){
+  comprobarDia();
+  var cfg = estado.config, g = estado.ninas[id];
+  if (!g) return;
+  if (tipo === "mal"){
+    if (g.corazones <= 0) return;
+    g.corazones--;
+    efectos[id] = { tipo:"pierde" };
+    estado.historial.push({ nina:id, tipo:"mal", hora: ahora() });
+    sonar(g.corazones === 0 ? "castigo" : "mal");
+  } else {
+    var yaPremiada = g.estrellas >= cfg.objetivo;
+    g.estrellas++;
+    efectos[id] = { tipo:"gana" };
+    estado.historial.push({ nina:id, tipo:"bien", hora: ahora() });
+    if (!yaPremiada && g.estrellas >= cfg.objetivo){ sonar("premio"); confeti(); }
+    else sonar("bien");
+  }
+  guardar();
+  pintar();
+}
+function deshacer(id){
+  var pos = ultimaDe(id);
+  if (pos < 0) return;
+  var ult = estado.historial[pos], g = estado.ninas[id];
+  if (ult.tipo === "mal") g.corazones = Math.min(estado.config.oportunidades, g.corazones + 1);
+  else g.estrellas = Math.max(0, g.estrellas - 1);
+  estado.historial.splice(pos,1);
+  sonar("deshacer");
+  guardar();
+  pintar();
+}
+function nuevoDia(){
+  estado.fecha = hoy();
+  estado.ninas = nuevasNinas(estado.config);
+  estado.historial = [];
+  guardar();
+  pintar();
+}
+
+/* ---------------- paneles ---------------- */
+var velo = document.getElementById("velo"), hoja = document.getElementById("hoja");
+function abrirHoja(html){
+  hoja.innerHTML = html;
+  velo.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+function cerrarHoja(){
+  velo.hidden = true;
+  hoja.innerHTML = "";
+  document.body.style.overflow = "";
+}
+velo.addEventListener("click", function(e){ if (e.target === velo) cerrarHoja(); });
+
+function abrirAjustes(){
+  var c = estado.config;
+  abrirHoja('' +
+    '<h2>⚙️ Ajustes</h2>' +
+    '<p class="sub">Se guardan y se mantienen al empezar un nuevo día.</p>' +
+    '<div class="numeros">' +
+      '<div class="campo"><label for="cfgOp">❤️ Oportunidades</label><input id="cfgOp" type="number" inputmode="numeric" min="1" max="10" value="' + c.oportunidades + '"></div>' +
+      '<div class="campo"><label for="cfgOb">⭐ Para el premio</label><input id="cfgOb" type="number" inputmode="numeric" min="1" max="10" value="' + c.objetivo + '"></div>' +
+    '</div>' +
+    '<div class="campo"><label for="cfgRe">🎁 Texto de la recompensa</label><input id="cfgRe" type="text" maxlength="60" value="' + esc(c.textoRecompensa) + '"></div>' +
+    '<div class="campo"><label for="cfgCa">⛔ Texto del castigo</label><input id="cfgCa" type="text" maxlength="30" value="' + esc(c.textoCastigo) + '"></div>' +
+    '<button class="grande bien" type="button" id="cfgGuardar">GUARDAR</button>' +
+    '<button class="secundario" type="button" data-cerrar>Cancelar</button>'
+  );
+  document.getElementById("cfgGuardar").addEventListener("click", function(){
+    var op = limitar(parseInt(document.getElementById("cfgOp").value,10), 1, 10, POR_DEFECTO.oportunidades);
+    var ob = limitar(parseInt(document.getElementById("cfgOb").value,10), 1, 10, POR_DEFECTO.objetivo);
+    var re = (document.getElementById("cfgRe").value || "").trim() || POR_DEFECTO.textoRecompensa;
+    var ca = (document.getElementById("cfgCa").value || "").trim() || POR_DEFECTO.textoCastigo;
+    estado.config = { oportunidades: op, objetivo: ob, textoRecompensa: re, textoCastigo: ca };
+    NINAS.forEach(function(n){
+      var g = estado.ninas[n.id];
+      if (g.corazones > op) g.corazones = op;
+    });
+    guardar(); cerrarHoja(); pintar();
+  });
+}
+function confirmarNuevoDia(){
+  abrirHoja('' +
+    '<h2>🔄 ¿Empezar un nuevo día?</h2>' +
+    '<p class="sub">Las tres vuelven a tener ' + estado.config.oportunidades + ' ❤️ y 0 ⭐, y se borra el historial de hoy. Los ajustes se mantienen.</p>' +
+    '<button class="grande mal" type="button" id="siNuevoDia">SÍ, EMPEZAR DE NUEVO</button>' +
+    '<button class="secundario" type="button" data-cerrar>No, seguir con el día</button>'
+  );
+  document.getElementById("siNuevoDia").addEventListener("click", function(){ nuevoDia(); cerrarHoja(); });
+}
+
+/* ---------------- eventos ---------------- */
+document.addEventListener("click", function(e){
+  var b = e.target && e.target.closest ? e.target.closest("button") : null;
+  if (!b) return;
+  if (b.hasAttribute("data-cerrar")) { cerrarHoja(); return; }
+  var acc = b.getAttribute("data-accion");
+  if (acc === "bien" || acc === "mal") { apuntar(b.getAttribute("data-nina"), acc); return; }
+  if (acc === "deshacer") { deshacer(b.getAttribute("data-nina")); return; }
+  if (b.id === "btnNuevoDia") { confirmarNuevoDia(); return; }
+  if (b.id === "btnAjustes")  { abrirAjustes(); return; }
+  if (b.id === "btnSonido")   {
+    estado.sonido = !estado.sonido; guardar();
+    b.textContent = estado.sonido ? "🔊" : "🔇";
+    if (estado.sonido) sonar("bien");
+    return;
+  }
+});
+document.addEventListener("visibilitychange", function(){
+  if (!document.hidden && comprobarDia()) pintar();
+});
+window.addEventListener("focus", function(){ if (estado && comprobarDia()) pintar(); });
+setInterval(function(){ if (estado && comprobarDia()) pintar(); }, 60000);
+
+/* ---------------- arranque ---------------- */
+estado = cargar();
+comprobarDia();
+guardar();
+pintar();
+
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("./sw.js").catch(function(){});
+  });
+}
+window.__reto = { estado: function(){ return estado; }, pintar: pintar, nuevoDia: nuevoDia };
+})();
+</script>
+</body>
+</html>
