@@ -95,6 +95,61 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 @keyframes saltar{0%,100%{transform:translateY(0)}35%{transform:translateY(-7px)}70%{transform:translateY(0)}}
 .tarjeta.salta{animation:saltar .45s ease}
 
+/* ---------- fogonazo: la super animacion de cada accion ---------- */
+#fogonazo{
+  position:fixed;inset:0;z-index:90;pointer-events:none;overflow:hidden;
+  --cx:50%;--cy:42%;--tinte:rgba(247,201,72,.5);--vivo:#f7c948;
+}
+#fogonazo[hidden]{display:none}
+#fogonazo .destello{
+  position:absolute;inset:0;
+  background:radial-gradient(circle at var(--cx) var(--cy), var(--tinte) 0%, transparent 60%);
+  animation:destellar .8s ease-out forwards;
+}
+#fogonazo .onda{
+  position:absolute;left:var(--cx);top:var(--cy);width:24px;height:24px;margin:-12px 0 0 -12px;
+  border-radius:50%;border:6px solid var(--vivo);
+  animation:ondear .85s cubic-bezier(.14,.75,.3,1) forwards;
+}
+#fogonazo .onda.dos{animation-delay:.13s;opacity:0}
+#fogonazo .astro{
+  position:absolute;left:var(--cx);top:var(--cy);
+  font-size:clamp(4.6rem, 32vw, 10rem);line-height:1;
+  filter:drop-shadow(0 12px 26px rgba(30,26,20,.32));
+}
+#fogonazo .chispa{
+  position:absolute;left:var(--cx);top:var(--cy);line-height:1;opacity:0;
+  animation:chispear var(--t) cubic-bezier(.1,.72,.3,1) var(--r) forwards;
+}
+@keyframes destellar{0%{opacity:0}16%{opacity:1}100%{opacity:0}}
+@keyframes ondear{0%{transform:scale(.15);opacity:.9;border-width:7px}100%{transform:scale(15);opacity:0;border-width:1px}}
+@keyframes chispear{
+  0%{transform:translate(-50%,-50%) scale(.2) rotate(0);opacity:0}
+  14%{opacity:1}
+  100%{transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(var(--e)) rotate(var(--g));opacity:0}
+}
+@keyframes estallar{
+  0%{transform:translate(-50%,-50%) scale(.15) rotate(-170deg);opacity:0}
+  20%{transform:translate(-50%,-50%) scale(1.4) rotate(14deg);opacity:1}
+  34%{transform:translate(-50%,-50%) scale(1.02) rotate(-8deg)}
+  48%{transform:translate(-50%,-52%) scale(1.22) rotate(4deg)}
+  62%{transform:translate(-50%,-50%) scale(1.1) rotate(0)}
+  76%{transform:translate(-50%,-51%) scale(1.15) rotate(0);opacity:1}
+  100%{transform:translate(-50%,-58%) scale(2) rotate(0);opacity:0}
+}
+#fogonazo .astro.gana{animation:estallar 1.05s cubic-bezier(.2,1.05,.35,1) forwards}
+@keyframes desplomar{
+  0%{transform:translate(-50%,-50%) scale(.35) rotate(0);opacity:0}
+  16%{transform:translate(-50%,-50%) scale(1.3) rotate(0);opacity:1}
+  26%{transform:translate(-56%,-50%) scale(1.16) rotate(-11deg)}
+  36%{transform:translate(-44%,-50%) scale(1.16) rotate(11deg)}
+  46%{transform:translate(-53%,-50%) scale(1.12) rotate(-6deg)}
+  56%{transform:translate(-48%,-50%) scale(1.1) rotate(4deg)}
+  66%{transform:translate(-50%,-50%) scale(1.08) rotate(0);opacity:1}
+  100%{transform:translate(-50%,6%) scale(.8) rotate(18deg);opacity:0}
+}
+#fogonazo .astro.pierde{animation:desplomar 1.05s cubic-bezier(.35,.05,.6,1) forwards}
+
 /* ---------- avisos ---------- */
 @keyframes entrar{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 .aviso{
@@ -374,6 +429,7 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 </section>
 
 <canvas id="confeti" hidden></canvas>
+<div id="fogonazo" hidden aria-hidden="true"></div>
 
 <div class="velo" id="velo" hidden>
   <div class="hoja" id="hoja"></div>
@@ -724,13 +780,110 @@ function nota(ctx, hz, inicio, dur, vol, tipo){
     o.stop(ctx.currentTime + inicio + dur + 0.03);
   } catch(err){}
 }
+/* nota que se desliza de una frecuencia a otra: el chispazo que sube y el batacazo que baja */
+function deslizar(ctx, hz1, hz2, inicio, dur, vol, tipo){
+  try {
+    var o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + inicio;
+    o.type = tipo || "sine";
+    o.frequency.setValueAtTime(hz1, t);
+    o.frequency.exponentialRampToValueAtTime(hz2, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + dur + 0.03);
+  } catch(err){}
+}
 function sonar(cual){
   var ctx = audio(); if (!ctx) return;
-  if (cual === "bien"){ nota(ctx, 660, 0, .13, .18); nota(ctx, 880, .1, .18, .16); }
-  else if (cual === "mal"){ nota(ctx, 300, 0, .16, .16, "triangle"); nota(ctx, 180, .13, .26, .15, "triangle"); }
-  else if (cual === "premio"){ [523,659,784,1046,1318].forEach(function(f,i){ nota(ctx, f, i*.09, .3, .16, "triangle"); }); }
-  else if (cual === "castigo"){ [392,349,294,220].forEach(function(f,i){ nota(ctx, f, i*.14, .34, .16, "sawtooth"); }); }
+  if (cual === "bien"){
+    /* fanfarria corta: arpegio que sube, campanita y un barrido brillante por encima */
+    [784,988,1319].forEach(function(f,i){ nota(ctx, f, i*.055, .22, .16, "triangle"); });
+    nota(ctx, 1568, .15, .5, .10);
+    nota(ctx, 2093, .21, .42, .05);
+    deslizar(ctx, 1046, 2637, .02, .3, .045);
+  }
+  else if (cual === "mal"){
+    /* justo lo contrario: un pitido que se desinfla y un golpe seco debajo */
+    deslizar(ctx, 440, 116, 0, .42, .17, "sawtooth");
+    nota(ctx, 196, .04, .18, .11, "square");
+    deslizar(ctx, 150, 46, .15, .34, .16);
+  }
+  else if (cual === "premio"){
+    [523,659,784,1046,1318].forEach(function(f,i){ nota(ctx, f, i*.09, .3, .16, "triangle"); });
+    nota(ctx, 2093, .46, .55, .07);
+    deslizar(ctx, 1318, 2637, .42, .4, .05);
+  }
+  else if (cual === "castigo"){
+    [392,349,294,220].forEach(function(f,i){ nota(ctx, f, i*.14, .34, .16, "sawtooth"); });
+    deslizar(ctx, 220, 55, .52, .5, .17);
+  }
   else if (cual === "deshacer"){ nota(ctx, 520, 0, .1, .1); }
+}
+
+/* ---------------- fogonazo: la super animacion de cada accion ---------------- */
+var capaFx = document.getElementById("fogonazo"), tempFx = null;
+var quietud = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+function icono(c){ return String.fromCodePoint(c); }
+var ASTRO_BIEN = icono(0x2B50), ASTRO_MAL = icono(0x1F494);
+var CHISPAS_BIEN = [0x2B50, 0x2728, 0x1F31F, 0x2728, 0x2B50, 0x1F389].map(icono);
+var CHISPAS_MAL  = [0x1F4A5, 0x1F5A4, 0x1F4A2, 0x1F5A4].map(icono);
+
+/* de donde sale el estallido: el centro de la tarjeta de la nina, o el de la pantalla */
+function focoDe(ninaId){
+  var x = window.innerWidth / 2, y = window.innerHeight * 0.42;
+  var t = ninaId ? document.querySelector('[data-tarjeta="' + ninaId + '"]') : null;
+  if (t && t.getBoundingClientRect){
+    var r = t.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0){
+      x = r.left + r.width / 2;
+      y = Math.min(Math.max(r.top + r.height * 0.42, 100), window.innerHeight - 100);
+    }
+  }
+  return { x:x, y:y };
+}
+function fogonazo(tipo, ninaId){
+  if (!capaFx) return;
+  if (quietud && quietud.matches) return;   /* si el movil pide menos movimiento, no molestamos */
+  var gana = tipo === "gana";
+  var foco = focoDe(ninaId);
+  capaFx.style.setProperty("--cx", foco.x + "px");
+  capaFx.style.setProperty("--cy", foco.y + "px");
+  capaFx.style.setProperty("--tinte", gana ? "rgba(247,201,72,.5)" : "rgba(224,87,79,.46)");
+  capaFx.style.setProperty("--vivo",  gana ? "#f7c948" : "#e0574f");
+
+  var trozos = gana ? CHISPAS_BIEN : CHISPAS_MAL;
+  var html = '<span class="destello"></span><span class="onda"></span><span class="onda dos"></span>' +
+             '<span class="astro ' + (gana ? "gana" : "pierde") + '">' + (gana ? ASTRO_BIEN : ASTRO_MAL) + '</span>';
+  for (var i = 0; i < 20; i++){
+    var ang, dist, x, y;
+    if (gana){
+      /* corona completa alrededor de la estrella, tirando un poco hacia arriba */
+      ang  = (i / 20) * Math.PI * 2 + (Math.random() - .5) * .3;
+      dist = 105 + Math.random() * 165;
+      x = Math.cos(ang) * dist;
+      y = Math.sin(ang) * dist - 45;
+    } else {
+      /* los pedazos caen: abanico hacia abajo */
+      ang  = Math.PI * .12 + Math.random() * Math.PI * .76;
+      dist = 85 + Math.random() * 150;
+      x = Math.cos(ang) * dist;
+      y = Math.abs(Math.sin(ang)) * dist + 40;
+    }
+    html += '<span class="chispa" style="' +
+              'font-size:' + (1 + Math.random() * 1.1).toFixed(2) + 'rem;' +
+              '--x:' + Math.round(x) + 'px;--y:' + Math.round(y) + 'px;' +
+              '--e:' + (gana ? (.7 + Math.random() * .8) : (.5 + Math.random() * .6)).toFixed(2) + ';' +
+              '--g:' + Math.round((gana ? 1 : -1) * (120 + Math.random() * 420)) + 'deg;' +
+              '--t:' + (.7 + Math.random() * .35).toFixed(2) + 's;' +
+              '--r:' + (Math.random() * .12).toFixed(3) + 's' +
+            '">' + trozos[i % trozos.length] + '</span>';
+  }
+  capaFx.innerHTML = html;
+  capaFx.hidden = false;
+  clearTimeout(tempFx);
+  tempFx = setTimeout(function(){ capaFx.hidden = true; capaFx.innerHTML = ""; }, 1300);
+  try { if (navigator.vibrate) navigator.vibrate(gana ? [16,38,26] : [95,55,130]); } catch(err){}
 }
 
 /* ---------------- confeti ---------------- */
@@ -992,9 +1145,11 @@ function apuntar(id, tipo){
   var despues = marcador(d, id, c);
   if (tipo === "mal"){
     efectos[id] = { tipo:"pierde" };
+    fogonazo("pierde", id);
     sonar(despues.castigada ? "castigo" : "mal");
   } else {
     efectos[id] = { tipo:"gana" };
+    fogonazo("gana", id);
     if (!antes.premiada && despues.premiada){ sonar("premio"); confeti(); }
     else sonar("bien");
   }

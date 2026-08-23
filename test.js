@@ -120,12 +120,27 @@ async function esperarA(fn, ms, cada) {
   ok('un toque en rojo deja 4 corazones', (await corazones('valeria')) === 4);
   ok('el 5o corazon se apaga', (await tarjeta('valeria').locator('[data-corazones] .pip.vacio').count()) === 1);
   ok('no toca a las hermanas', (await corazones('paula')) === 5 && (await corazones('alejandra')) === 5);
+  ok('el rojo lanza el fogonazo del corazon roto',
+     await pag.locator('#fogonazo .astro.pierde').isVisible());
+  ok('el fogonazo del rojo tira pedazos', (await pag.locator('#fogonazo .chispa').count()) === 20);
 
   /* 4. estrellas suben */
   console.log('-- buenas acciones');
   await pulsar('paula', 'bien');
   ok('un toque en verde da 1 estrella', (await estrellas('paula')) === 1);
   ok('la buena accion NO devuelve corazones', (await corazones('paula')) === 5);
+  ok('el verde lanza el fogonazo de la estrella',
+     await pag.locator('#fogonazo .astro.gana').isVisible());
+  ok('el fogonazo sale de la tarjeta de esa nina', await pag.evaluate(() => {
+    const capa = document.getElementById('fogonazo');
+    const cx = parseFloat(capa.style.getPropertyValue('--cx'));
+    const r = document.querySelector('[data-tarjeta="paula"]').getBoundingClientRect();
+    return Math.abs(cx - (r.left + r.width / 2)) < 2;
+  }));
+  ok('el fogonazo no intercepta los toques', await pag.evaluate(() =>
+     getComputedStyle(document.getElementById('fogonazo')).pointerEvents === 'none'));
+  ok('el fogonazo se apaga solo', await esperarA(async () =>
+     await pag.evaluate(() => document.getElementById('fogonazo').hidden), 3000, 150));
   await pulsar('valeria', 'bien');
   ok('marcadores independientes (Valeria 4 corazones y 1 estrella)',
      (await corazones('valeria')) === 4 && (await estrellas('valeria')) === 1);

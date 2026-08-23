@@ -19,6 +19,10 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
 - **Pantalla para ellas** (botón 👀): vista grande de solo lectura, ordenada por quien va ganando y con medalla, sin botones de sumar ni restar;
   para salir hay que mantener pulsado.
 - Botones grandes por niña, DESHACER por niña, historial del día, sonidos y ajustes.
+- **Fogonazo en cada toque**: al verde le salta una estrella gigante en el centro de la tarjeta,
+  con onda expansiva, lluvia de chispas, fanfarria y vibración corta; al rojo le salta el mismo
+  golpe pero al revés: corazón roto, tinte rojo, pedazos que caen, pitido que se desinfla y
+  vibración larga. Se salta entero si el móvil pide menos movimiento.
 - **Los dos móviles a la vez.** Cada acción es un evento con su identificador; el servidor se queda
   con la unión de lo que manda cada móvil, así que da igual quién apunte. Sin cobertura se apunta
   igual y se envía solo al recuperarla.
@@ -40,7 +44,7 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
 ```bash
 python make-icons.py                     # regenera los iconos de la PWA
 cd docs && python -m http.server 8765    # servir en local
-node test.js http://127.0.0.1:8765/      # 164 comprobaciones en Chrome con tamaño de iPhone
+node test.js http://127.0.0.1:8765/      # 170 comprobaciones en Chrome con tamaño de iPhone
 MOTOR=webkit node test.js <url>          # las mismas en WebKit (motor de Safari)
 node test.js https://aclasesor-bit.github.io/reto-del-viaje/   # comprobar lo publicado
 ```
