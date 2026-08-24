@@ -122,7 +122,12 @@ async function esperarA(fn, ms, cada) {
   ok('no toca a las hermanas', (await corazones('paula')) === 5 && (await corazones('alejandra')) === 5);
   ok('el rojo lanza el fogonazo del corazon roto',
      await pag.locator('#fogonazo .astro.pierde').isVisible());
-  ok('el fogonazo del rojo tira pedazos', (await pag.locator('#fogonazo .chispa').count()) === 20);
+  ok('el fogonazo del rojo tira pedazos y cortina',
+     (await pag.locator('#fogonazo .chispa').count()) === 34 &&
+     (await pag.locator('#fogonazo .gota').count()) === 22);
+  ok('el rojo cierra la pantalla en oscuro', await pag.locator('#fogonazo .vineta').isVisible());
+  ok('el rojo sacude la pagina', await pag.evaluate(() => document.body.classList.contains('sacude')));
+  ok('el rojo canta un aviso a lo grande', /OH|VAYA|UY/.test(await pag.locator('#fogonazo .cartel').innerText()));
 
   /* 4. estrellas suben */
   console.log('-- buenas acciones');
@@ -131,6 +136,12 @@ async function esperarA(fn, ms, cada) {
   ok('la buena accion NO devuelve corazones', (await corazones('paula')) === 5);
   ok('el verde lanza el fogonazo de la estrella',
      await pag.locator('#fogonazo .astro.gana').isVisible());
+  ok('el verde abre el sol de rayos', await pag.locator('#fogonazo .rayos').isVisible());
+  ok('el verde canta un aviso a lo grande', /BIEN|GENIAL|BRAVO|CAMPEONA/.test(await pag.locator('#fogonazo .cartel').innerText()));
+  ok('la estrella ocupa media pantalla de ancho', await pag.evaluate(() => {
+    const c = document.querySelector('#fogonazo .astro').getBoundingClientRect();
+    return c.width > window.innerWidth * 0.5;
+  }));
   ok('el fogonazo sale de la tarjeta de esa nina', await pag.evaluate(() => {
     const capa = document.getElementById('fogonazo');
     const cx = parseFloat(capa.style.getPropertyValue('--cx'));
@@ -140,7 +151,9 @@ async function esperarA(fn, ms, cada) {
   ok('el fogonazo no intercepta los toques', await pag.evaluate(() =>
      getComputedStyle(document.getElementById('fogonazo')).pointerEvents === 'none'));
   ok('el fogonazo se apaga solo', await esperarA(async () =>
-     await pag.evaluate(() => document.getElementById('fogonazo').hidden), 3000, 150));
+     await pag.evaluate(() => document.getElementById('fogonazo').hidden), 5000, 150));
+  ok('la pagina deja de temblar sola', await esperarA(async () =>
+     await pag.evaluate(() => !document.body.className.match(/celebra|sacude/)), 3000, 150));
   await pulsar('valeria', 'bien');
   ok('marcadores independientes (Valeria 4 corazones y 1 estrella)',
      (await corazones('valeria')) === 4 && (await estrellas('valeria')) === 1);

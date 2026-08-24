@@ -95,60 +95,132 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 @keyframes saltar{0%,100%{transform:translateY(0)}35%{transform:translateY(-7px)}70%{transform:translateY(0)}}
 .tarjeta.salta{animation:saltar .45s ease}
 
-/* ---------- fogonazo: la super animacion de cada accion ---------- */
+/* ---------- fogonazo: la super animacion, a pantalla completa ---------- */
 #fogonazo{
   position:fixed;inset:0;z-index:90;pointer-events:none;overflow:hidden;
-  --cx:50%;--cy:42%;--tinte:rgba(247,201,72,.5);--vivo:#f7c948;
+  --cx:50%;--cy:42%;--tinte:rgba(247,201,72,.55);--vivo:#f7c948;--letra:#c98a06;
 }
 #fogonazo[hidden]{display:none}
+
+/* el sol de rayos que barre toda la pantalla (solo en la buena) */
+#fogonazo .rayos{
+  position:absolute;left:var(--cx);top:var(--cy);width:280vmax;height:280vmax;
+  margin:-140vmax 0 0 -140vmax;opacity:0;
+  background:repeating-conic-gradient(from 0deg, var(--vivo) 0deg 7deg, transparent 7deg 23deg);
+  -webkit-mask-image:radial-gradient(circle, #000 0%, #000 22%, transparent 58%);
+          mask-image:radial-gradient(circle, #000 0%, #000 22%, transparent 58%);
+  animation:radiar 2s cubic-bezier(.1,.72,.3,1) forwards;
+}
+@keyframes radiar{
+  0%{transform:rotate(0) scale(.04);opacity:0}
+  10%{opacity:.8}
+  55%{opacity:.42}
+  100%{transform:rotate(52deg) scale(1);opacity:0}
+}
+/* la oscuridad que se cierra desde los bordes (solo en la mala) */
+#fogonazo .vineta{
+  position:absolute;inset:0;opacity:0;
+  background:radial-gradient(circle at var(--cx) var(--cy), transparent 0%, transparent 22%, rgba(120,26,22,.62) 100%);
+  animation:cerrarse 1.9s ease-out forwards;
+}
+@keyframes cerrarse{0%{opacity:0;transform:scale(1.6)}22%{opacity:1;transform:scale(1)}70%{opacity:.85}100%{opacity:0}}
+
 #fogonazo .destello{
   position:absolute;inset:0;
-  background:radial-gradient(circle at var(--cx) var(--cy), var(--tinte) 0%, transparent 60%);
-  animation:destellar .8s ease-out forwards;
+  background:radial-gradient(circle at var(--cx) var(--cy), var(--tinte) 0%, transparent 68%);
+  animation:destellar 1.1s ease-out forwards;
 }
 #fogonazo .onda{
-  position:absolute;left:var(--cx);top:var(--cy);width:24px;height:24px;margin:-12px 0 0 -12px;
-  border-radius:50%;border:6px solid var(--vivo);
-  animation:ondear .85s cubic-bezier(.14,.75,.3,1) forwards;
+  position:absolute;left:var(--cx);top:var(--cy);width:26px;height:26px;margin:-13px 0 0 -13px;
+  border-radius:50%;border:7px solid var(--vivo);
+  animation:ondear 1.25s cubic-bezier(.12,.72,.28,1) forwards;
 }
-#fogonazo .onda.dos{animation-delay:.13s;opacity:0}
+#fogonazo .onda.dos{animation-delay:.16s;opacity:0}
+#fogonazo .onda.tres{animation-delay:.33s;opacity:0}
+
 #fogonazo .astro{
   position:absolute;left:var(--cx);top:var(--cy);
-  font-size:clamp(4.6rem, 32vw, 10rem);line-height:1;
-  filter:drop-shadow(0 12px 26px rgba(30,26,20,.32));
+  font-size:min(64vw, 48vh);line-height:1;
+  filter:drop-shadow(0 16px 34px rgba(30,26,20,.4));
 }
+#fogonazo .cartel{
+  position:absolute;left:50%;top:13%;transform:translate(-50%,0);
+  font-size:clamp(2rem, 12.5vw, 5rem);font-weight:900;letter-spacing:.02em;
+  color:#fff;-webkit-text-stroke:3px var(--letra);paint-order:stroke fill;
+  text-shadow:0 6px 0 rgba(0,0,0,.12), 0 14px 30px rgba(30,26,20,.3);
+  white-space:nowrap;opacity:0;
+  animation:cartelear 2.1s cubic-bezier(.2,1.1,.35,1) forwards;
+}
+@keyframes cartelear{
+  0%{opacity:0;transform:translate(-50%,26px) scale(.4) rotate(-7deg)}
+  14%{opacity:1;transform:translate(-50%,0) scale(1.18) rotate(3deg)}
+  24%{transform:translate(-50%,0) scale(.97) rotate(-2deg)}
+  34%{transform:translate(-50%,0) scale(1.06) rotate(0)}
+  46%,78%{opacity:1;transform:translate(-50%,0) scale(1) rotate(0)}
+  100%{opacity:0;transform:translate(-50%,-30px) scale(1.1) rotate(0)}
+}
+#fogonazo .chispa,
+#fogonazo .gota{position:absolute;line-height:1;opacity:0}
 #fogonazo .chispa{
-  position:absolute;left:var(--cx);top:var(--cy);line-height:1;opacity:0;
-  animation:chispear var(--t) cubic-bezier(.1,.72,.3,1) var(--r) forwards;
+  left:var(--cx);top:var(--cy);
+  animation:chispear var(--t) cubic-bezier(.08,.72,.28,1) var(--r) forwards;
 }
-@keyframes destellar{0%{opacity:0}16%{opacity:1}100%{opacity:0}}
-@keyframes ondear{0%{transform:scale(.15);opacity:.9;border-width:7px}100%{transform:scale(15);opacity:0;border-width:1px}}
+#fogonazo .gota{
+  left:var(--l);top:-14vh;
+  animation:llover var(--t) linear var(--r) forwards;
+}
+@keyframes destellar{0%{opacity:0}12%{opacity:1}62%{opacity:.5}100%{opacity:0}}
+@keyframes ondear{0%{transform:scale(.12);opacity:.95;border-width:9px}100%{transform:scale(28);opacity:0;border-width:1px}}
 @keyframes chispear{
-  0%{transform:translate(-50%,-50%) scale(.2) rotate(0);opacity:0}
-  14%{opacity:1}
+  0%{transform:translate(-50%,-50%) scale(.15) rotate(0);opacity:0}
+  10%{opacity:1}
   100%{transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(var(--e)) rotate(var(--g));opacity:0}
 }
+@keyframes llover{
+  0%{transform:translateY(0) rotate(0);opacity:0}
+  8%{opacity:1}
+  85%{opacity:1}
+  100%{transform:translateY(128vh) rotate(var(--g));opacity:0}
+}
 @keyframes estallar{
-  0%{transform:translate(-50%,-50%) scale(.15) rotate(-170deg);opacity:0}
-  20%{transform:translate(-50%,-50%) scale(1.4) rotate(14deg);opacity:1}
-  34%{transform:translate(-50%,-50%) scale(1.02) rotate(-8deg)}
-  48%{transform:translate(-50%,-52%) scale(1.22) rotate(4deg)}
-  62%{transform:translate(-50%,-50%) scale(1.1) rotate(0)}
-  76%{transform:translate(-50%,-51%) scale(1.15) rotate(0);opacity:1}
-  100%{transform:translate(-50%,-58%) scale(2) rotate(0);opacity:0}
+  0%{transform:translate(-50%,-50%) scale(.06) rotate(-200deg);opacity:0}
+  16%{transform:translate(-50%,-50%) scale(1.18) rotate(16deg);opacity:1}
+  27%{transform:translate(-50%,-50%) scale(.82) rotate(-9deg)}
+  38%{transform:translate(-50%,-52%) scale(1.06) rotate(5deg)}
+  49%{transform:translate(-50%,-50%) scale(.94) rotate(-3deg)}
+  60%{transform:translate(-50%,-51%) scale(1.02) rotate(2deg)}
+  72%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1}
+  100%{transform:translate(-50%,-62%) scale(2.6) rotate(0);opacity:0}
 }
-#fogonazo .astro.gana{animation:estallar 1.05s cubic-bezier(.2,1.05,.35,1) forwards}
+#fogonazo .astro.gana{animation:estallar 2.1s cubic-bezier(.2,1,.35,1) forwards}
 @keyframes desplomar{
-  0%{transform:translate(-50%,-50%) scale(.35) rotate(0);opacity:0}
-  16%{transform:translate(-50%,-50%) scale(1.3) rotate(0);opacity:1}
-  26%{transform:translate(-56%,-50%) scale(1.16) rotate(-11deg)}
-  36%{transform:translate(-44%,-50%) scale(1.16) rotate(11deg)}
-  46%{transform:translate(-53%,-50%) scale(1.12) rotate(-6deg)}
-  56%{transform:translate(-48%,-50%) scale(1.1) rotate(4deg)}
-  66%{transform:translate(-50%,-50%) scale(1.08) rotate(0);opacity:1}
-  100%{transform:translate(-50%,6%) scale(.8) rotate(18deg);opacity:0}
+  0%{transform:translate(-50%,-50%) scale(.2) rotate(0);opacity:0}
+  12%{transform:translate(-50%,-50%) scale(1.14) rotate(0);opacity:1}
+  20%{transform:translate(-57%,-50%) scale(1.04) rotate(-13deg)}
+  28%{transform:translate(-43%,-50%) scale(1.04) rotate(13deg)}
+  36%{transform:translate(-55%,-50%) scale(1) rotate(-8deg)}
+  44%{transform:translate(-45%,-50%) scale(1) rotate(8deg)}
+  52%{transform:translate(-51%,-50%) scale(.98) rotate(-4deg)}
+  62%{transform:translate(-50%,-48%) scale(.96) rotate(0);opacity:1}
+  100%{transform:translate(-50%,64%) scale(.7) rotate(24deg);opacity:0}
 }
-#fogonazo .astro.pierde{animation:desplomar 1.05s cubic-bezier(.35,.05,.6,1) forwards}
+#fogonazo .astro.pierde{animation:desplomar 2.1s cubic-bezier(.4,.02,.65,1) forwards}
+
+/* la propia pagina reacciona: un botecito al ganar, un temblor al perder */
+@keyframes celebrar{0%,100%{transform:scale(1)}30%{transform:scale(1.035)}55%{transform:scale(.995)}}
+@keyframes sacudir{
+  0%,100%{transform:translate3d(0,0,0)}
+  8%{transform:translate3d(-11px,4px,0)}
+  18%{transform:translate3d(10px,-5px,0)}
+  28%{transform:translate3d(-9px,-3px,0)}
+  38%{transform:translate3d(8px,5px,0)}
+  50%{transform:translate3d(-6px,-4px,0)}
+  62%{transform:translate3d(5px,3px,0)}
+  76%{transform:translate3d(-3px,2px,0)}
+  90%{transform:translate3d(2px,-1px,0)}
+}
+body.celebra .envoltura{animation:celebrar .7s ease-out}
+body.sacude .envoltura{animation:sacudir .8s ease-out}
 
 /* ---------- avisos ---------- */
 @keyframes entrar{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
@@ -797,47 +869,71 @@ function deslizar(ctx, hz1, hz2, inicio, dur, vol, tipo){
 function sonar(cual){
   var ctx = audio(); if (!ctx) return;
   if (cual === "bien"){
-    /* fanfarria corta: arpegio que sube, campanita y un barrido brillante por encima */
-    [784,988,1319].forEach(function(f,i){ nota(ctx, f, i*.055, .22, .16, "triangle"); });
-    nota(ctx, 1568, .15, .5, .10);
-    nota(ctx, 2093, .21, .42, .05);
-    deslizar(ctx, 1046, 2637, .02, .3, .045);
+    /* fanfarria de victoria de dos segundos: corneta, acorde final y campanitas */
+    [[392,.00,.14],[523,.14,.14],[659,.28,.14],[784,.42,.26],
+     [784,.70,.10],[880,.81,.10],[1046,.93,.80]].forEach(function(n){
+      nota(ctx, n[0], n[1], n[2], .15, "triangle");
+    });
+    [261,329,392,523].forEach(function(f){ nota(ctx, f, .93, .95, .075); });
+    nota(ctx, 130, .93, .9, .11);
+    deslizar(ctx, 1046, 3136, .95, .7, .05);
+    [1568,2093,2637].forEach(function(f,i){ nota(ctx, f, 1.18 + i*.1, .55, .05); });
   }
   else if (cual === "mal"){
-    /* justo lo contrario: un pitido que se desinfla y un golpe seco debajo */
-    deslizar(ctx, 440, 116, 0, .42, .17, "sawtooth");
-    nota(ctx, 196, .04, .18, .11, "square");
-    deslizar(ctx, 150, 46, .15, .34, .16);
+    /* justo lo contrario: el tromboncito triste que baja escalon a escalon */
+    [[392,349],[349,311],[311,262],[262,196]].forEach(function(par,i){
+      deslizar(ctx, par[0], par[1], i*.26, .28, .155, "sawtooth");
+    });
+    deslizar(ctx, 196, 62, 1.06, .72, .17, "sawtooth");
+    nota(ctx, 98, 1.1, .5, .1, "square");
+    deslizar(ctx, 120, 38, 1.5, .55, .15);
   }
   else if (cual === "premio"){
-    [523,659,784,1046,1318].forEach(function(f,i){ nota(ctx, f, i*.09, .3, .16, "triangle"); });
-    nota(ctx, 2093, .46, .55, .07);
-    deslizar(ctx, 1318, 2637, .42, .4, .05);
+    /* la grande: la fanfarria entera y las campanas del premio */
+    [[523,.00,.15],[659,.15,.15],[784,.30,.15],[1046,.45,.30],
+     [988,.78,.13],[1046,.91,.13],[1175,1.04,.13],[1318,1.17,.95]].forEach(function(n){
+      nota(ctx, n[0], n[1], n[2], .15, "triangle");
+    });
+    [329,415,523,659].forEach(function(f){ nota(ctx, f, 1.17, 1.1, .07); });
+    nota(ctx, 164, 1.17, 1.05, .11);
+    deslizar(ctx, 1318, 3520, 1.2, .85, .05);
+    [2093,2637,3136,2637].forEach(function(f,i){ nota(ctx, f, 1.5 + i*.12, .6, .05); });
   }
   else if (cual === "castigo"){
-    [392,349,294,220].forEach(function(f,i){ nota(ctx, f, i*.14, .34, .16, "sawtooth"); });
-    deslizar(ctx, 220, 55, .52, .5, .17);
+    /* la derrota total: todo se hunde */
+    [[392,370],[370,330],[330,294],[294,247],[247,196]].forEach(function(par,i){
+      deslizar(ctx, par[0], par[1], i*.24, .26, .15, "sawtooth");
+    });
+    [155,196,233].forEach(function(f){ nota(ctx, f, 1.2, .9, .08, "triangle"); });
+    deslizar(ctx, 196, 49, 1.2, 1, .17, "sawtooth");
+    nota(ctx, 82, 1.25, .8, .11, "square");
+    deslizar(ctx, 110, 32, 1.9, .6, .14);
   }
   else if (cual === "deshacer"){ nota(ctx, 520, 0, .1, .1); }
 }
 
-/* ---------------- fogonazo: la super animacion de cada accion ---------------- */
-var capaFx = document.getElementById("fogonazo"), tempFx = null;
+/* ---------------- fogonazo: la super animacion, a pantalla completa ---------------- */
+var capaFx = document.getElementById("fogonazo"), tempFx = null, tempCuerpo = null;
 var quietud = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
 function icono(c){ return String.fromCodePoint(c); }
 var ASTRO_BIEN = icono(0x2B50), ASTRO_MAL = icono(0x1F494);
-var CHISPAS_BIEN = [0x2B50, 0x2728, 0x1F31F, 0x2728, 0x2B50, 0x1F389].map(icono);
-var CHISPAS_MAL  = [0x1F4A5, 0x1F5A4, 0x1F4A2, 0x1F5A4].map(icono);
+var CHISPAS_BIEN = [0x2B50, 0x2728, 0x1F31F, 0x1F389, 0x2728, 0x1F38A].map(icono);
+var CHISPAS_MAL  = [0x1F4A5, 0x1F5A4, 0x1F4A2, 0x1F494, 0x1F5A4].map(icono);
+var LLUVIA_BIEN  = [0x2B50, 0x2728, 0x1F31F, 0x1F388].map(icono);
+var LLUVIA_MAL   = [0x1F4A7, 0x1F5A4, 0x1F494, 0x1F4A2].map(icono);
+var GRITOS_BIEN  = ["¡MUY BIEN!", "¡GENIAL!", "¡BRAVO!", "¡CAMPEONA!"];
+var GRITOS_MAL   = ["¡OH, NO!", "¡VAYA...!", "¡UY!"];
+function alAzar(lista){ return lista[Math.floor(Math.random() * lista.length)]; }
 
 /* de donde sale el estallido: el centro de la tarjeta de la nina, o el de la pantalla */
 function focoDe(ninaId){
-  var x = window.innerWidth / 2, y = window.innerHeight * 0.42;
+  var x = window.innerWidth / 2, y = window.innerHeight * 0.44;
   var t = ninaId ? document.querySelector('[data-tarjeta="' + ninaId + '"]') : null;
   if (t && t.getBoundingClientRect){
     var r = t.getBoundingClientRect();
     if (r.width > 0 && r.height > 0){
       x = r.left + r.width / 2;
-      y = Math.min(Math.max(r.top + r.height * 0.42, 100), window.innerHeight - 100);
+      y = Math.min(Math.max(r.top + r.height * 0.42, window.innerHeight * 0.28), window.innerHeight * 0.66);
     }
   }
   return { x:x, y:y };
@@ -846,44 +942,73 @@ function fogonazo(tipo, ninaId){
   if (!capaFx) return;
   if (quietud && quietud.matches) return;   /* si el movil pide menos movimiento, no molestamos */
   var gana = tipo === "gana";
+  var an = window.innerWidth, al = window.innerHeight;
   var foco = focoDe(ninaId);
-  capaFx.style.setProperty("--cx", foco.x + "px");
-  capaFx.style.setProperty("--cy", foco.y + "px");
-  capaFx.style.setProperty("--tinte", gana ? "rgba(247,201,72,.5)" : "rgba(224,87,79,.46)");
+  capaFx.style.setProperty("--cx", Math.round(foco.x) + "px");
+  capaFx.style.setProperty("--cy", Math.round(foco.y) + "px");
+  capaFx.style.setProperty("--tinte", gana ? "rgba(247,201,72,.55)" : "rgba(224,87,79,.5)");
   capaFx.style.setProperty("--vivo",  gana ? "#f7c948" : "#e0574f");
+  capaFx.style.setProperty("--letra", gana ? "#c98a06" : "#b9433c");
 
+  var html = gana ? '<span class="rayos"></span>' : '<span class="vineta"></span>';
+  html += '<span class="destello"></span>' +
+          '<span class="onda"></span><span class="onda dos"></span><span class="onda tres"></span>' +
+          '<span class="astro ' + (gana ? "gana" : "pierde") + '">' + (gana ? ASTRO_BIEN : ASTRO_MAL) + '</span>' +
+          '<span class="cartel">' + esc(alAzar(gana ? GRITOS_BIEN : GRITOS_MAL)) + '</span>';
+
+  /* chispas: cruzan la pantalla entera desde el foco */
   var trozos = gana ? CHISPAS_BIEN : CHISPAS_MAL;
-  var html = '<span class="destello"></span><span class="onda"></span><span class="onda dos"></span>' +
-             '<span class="astro ' + (gana ? "gana" : "pierde") + '">' + (gana ? ASTRO_BIEN : ASTRO_MAL) + '</span>';
-  for (var i = 0; i < 20; i++){
+  var lejos = Math.max(an, al) * 0.62;
+  for (var i = 0; i < 34; i++){
     var ang, dist, x, y;
     if (gana){
-      /* corona completa alrededor de la estrella, tirando un poco hacia arriba */
-      ang  = (i / 20) * Math.PI * 2 + (Math.random() - .5) * .3;
-      dist = 105 + Math.random() * 165;
+      ang  = (i / 34) * Math.PI * 2 + (Math.random() - .5) * .28;
+      dist = lejos * (.45 + Math.random() * .75);
       x = Math.cos(ang) * dist;
-      y = Math.sin(ang) * dist - 45;
+      y = Math.sin(ang) * dist - al * .06;
     } else {
-      /* los pedazos caen: abanico hacia abajo */
-      ang  = Math.PI * .12 + Math.random() * Math.PI * .76;
-      dist = 85 + Math.random() * 150;
+      ang  = Math.PI * .08 + Math.random() * Math.PI * .84;
+      dist = lejos * (.35 + Math.random() * .7);
       x = Math.cos(ang) * dist;
-      y = Math.abs(Math.sin(ang)) * dist + 40;
+      y = Math.abs(Math.sin(ang)) * dist + al * .08;
     }
     html += '<span class="chispa" style="' +
-              'font-size:' + (1 + Math.random() * 1.1).toFixed(2) + 'rem;' +
+              'font-size:' + (1.1 + Math.random() * 1.7).toFixed(2) + 'rem;' +
               '--x:' + Math.round(x) + 'px;--y:' + Math.round(y) + 'px;' +
-              '--e:' + (gana ? (.7 + Math.random() * .8) : (.5 + Math.random() * .6)).toFixed(2) + ';' +
-              '--g:' + Math.round((gana ? 1 : -1) * (120 + Math.random() * 420)) + 'deg;' +
-              '--t:' + (.7 + Math.random() * .35).toFixed(2) + 's;' +
-              '--r:' + (Math.random() * .12).toFixed(3) + 's' +
+              '--e:' + (gana ? (.8 + Math.random() * 1) : (.5 + Math.random() * .7)).toFixed(2) + ';' +
+              '--g:' + Math.round((gana ? 1 : -1) * (180 + Math.random() * 540)) + 'deg;' +
+              '--t:' + (.95 + Math.random() * .5).toFixed(2) + 's;' +
+              '--r:' + (Math.random() * .16).toFixed(3) + 's' +
             '">' + trozos[i % trozos.length] + '</span>';
   }
+  /* y encima cae una cortina de lado a lado */
+  var gotas = gana ? LLUVIA_BIEN : LLUVIA_MAL;
+  for (var j = 0; j < 22; j++){
+    html += '<span class="gota" style="' +
+              'font-size:' + (1 + Math.random() * 1.5).toFixed(2) + 'rem;' +
+              '--l:' + (2 + (j / 22) * 96 + Math.random() * 3).toFixed(1) + '%;' +
+              '--g:' + Math.round((Math.random() - .5) * 900) + 'deg;' +
+              '--t:' + (1.5 + Math.random() * .8).toFixed(2) + 's;' +
+              '--r:' + (Math.random() * .55).toFixed(3) + 's' +
+            '">' + gotas[j % gotas.length] + '</span>';
+  }
+
   capaFx.innerHTML = html;
   capaFx.hidden = false;
   clearTimeout(tempFx);
-  tempFx = setTimeout(function(){ capaFx.hidden = true; capaFx.innerHTML = ""; }, 1300);
-  try { if (navigator.vibrate) navigator.vibrate(gana ? [16,38,26] : [95,55,130]); } catch(err){}
+  tempFx = setTimeout(function(){ capaFx.hidden = true; capaFx.innerHTML = ""; }, 2500);
+
+  /* la pagina de debajo tambien se entera */
+  var cuerpo = document.body;
+  cuerpo.classList.remove("celebra", "sacude");
+  void cuerpo.offsetWidth;                         /* reinicia la animacion si se pulsa seguido */
+  cuerpo.classList.add(gana ? "celebra" : "sacude");
+  clearTimeout(tempCuerpo);
+  tempCuerpo = setTimeout(function(){ cuerpo.classList.remove("celebra", "sacude"); }, 900);
+
+  try {
+    if (navigator.vibrate) navigator.vibrate(gana ? [22,50,22,50,90] : [130,70,60,50,180]);
+  } catch(err){}
 }
 
 /* ---------------- confeti ---------------- */
