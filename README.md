@@ -10,6 +10,9 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
 
 - **Ranking arriba del todo**, con dos pestañas: **Hoy** y **Semana L–V** (suma de lunes a viernes,
   con una casilla por día: ⭐ del día, 🎁 si llegó al premio, ⛔ si se quedó sin corazones).
+  **Manda el neto: las ⭐ ganadas menos los ❤️ perdidos**, y se canta en una chapa a la derecha
+  (verde si va en positivo, roja si va en negativo). Si dos empatan a neto, va delante quien más ⭐
+  ha hecho; y si también empatan ahí, quien menos ❤️ ha perdido.
 - **Foto de cada niña** (Ajustes → 📷): se recorta a una miniatura de 224 px, viaja por la API y se
   ve en los dos móviles. No está en el repositorio: vive en el buzón de la familia.
 - **Premios que no se pierden**: al llegar al objetivo se apunta un premio de ese día (clave
@@ -47,7 +50,7 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
 ```bash
 python make-icons.py                     # regenera los iconos de la PWA
 cd docs && python -m http.server 8765    # servir en local
-node test.js http://127.0.0.1:8765/      # 175 comprobaciones en Chrome con tamaño de iPhone
+node test.js http://127.0.0.1:8765/      # 182 comprobaciones en Chrome con tamaño de iPhone
 MOTOR=webkit node test.js <url>          # las mismas en WebKit (motor de Safari)
 node test.js https://aclasesor-bit.github.io/reto-del-viaje/   # comprobar lo publicado
 ```

@@ -293,8 +293,19 @@ body.sacude .envoltura{animation:sacudir .8s ease-out}
   width:30px;height:30px;flex:0 0 30px;border-radius:50%;background-size:cover;background-position:center top;
   box-shadow:0 0 0 2px var(--acento);
 }
-.rank .marca{display:flex;align-items:center;gap:9px;font-size:1rem;font-weight:800;white-space:nowrap}
+.rank .marca{display:flex;align-items:center;gap:7px;font-size:1rem;font-weight:800;white-space:nowrap}
 .rank .marca span{display:inline-flex;align-items:center;gap:3px}
+.rank .neto{
+  justify-content:center;min-width:34px;padding:2px 7px;border-radius:999px;
+  font-size:.92rem;font-weight:900;background:#f0ece7;color:var(--suave);
+}
+.rank .neto.bien{background:var(--verde-luz);color:var(--verde-osc)}
+/* en pantallas estrechas los numeros se aprietan para que quepa el nombre entero */
+@media (max-width:360px){
+  .rank .marca{gap:5px;font-size:.92rem}
+  .rank .neto{min-width:29px;padding:2px 6px;font-size:.85rem}
+}
+.rank .neto.mal{background:var(--rojo-luz);color:var(--rojo-osc)}
 .rank .sello{font-size:1.1rem}
 .rank.malva .marca{color:var(--rojo-osc)}
 .rank.buena .marca{color:var(--verde-osc)}
@@ -1112,26 +1123,37 @@ function pintarRanking(){
   var semana = local.vista === "semana";
   document.getElementById("tituloRanking").textContent = semana ? "🏆 Ranking de la semana" : "🏆 Ranking de hoy";
   document.getElementById("pistaRanking").textContent = semana
-    ? "De lunes a viernes. Gana quien más ⭐ suma en los cinco días; desempata quien menos ❤️ ha perdido."
-    : "Gana quien más ⭐ lleva hoy · desempata el ❤️";
+    ? "De lunes a viernes. Gana el mejor neto de la semana: las ⭐ ganadas menos los ❤️ perdidos."
+    : "Gana el mejor neto: las ⭐ ganadas menos los ❤️ perdidos · desempatan las ⭐";
   Array.prototype.forEach.call(document.querySelectorAll(".pest"), function(p){
     p.className = "pest" + (p.getAttribute("data-vista") === local.vista ? " activa" : "");
   });
   document.getElementById("listaRanking").innerHTML = semana ? htmlSemana() : htmlHoy();
 }
+/* manda el NETO: estrellas ganadas menos corazones perdidos.
+   Si dos empatan a neto, va delante quien mas estrellas ha hecho; y si tambien
+   empatan ahi, quien menos corazones ha perdido. */
 function ordenar(lista){
+  lista.forEach(function(x){ x.neto = x.estrellas - x.perdidos; });
   lista.sort(function(a,b){
+    if (b.neto !== a.neto) return b.neto - a.neto;
     if (b.estrellas !== a.estrellas) return b.estrellas - a.estrellas;
     return a.perdidos - b.perdidos;
   });
-  var empate = lista.every(function(x){ return x.estrellas === lista[0].estrellas && x.perdidos === lista[0].perdidos; });
-  var puesto = 0, antEstrellas = null, antPerdidos = null;
+  var igual = function(a,b){ return a.neto === b.neto && a.estrellas === b.estrellas && a.perdidos === b.perdidos; };
+  var empate = lista.every(function(x){ return igual(x, lista[0]); });
+  var puesto = 0, ant = null;
   lista.forEach(function(x,i){
-    if (x.estrellas !== antEstrellas || x.perdidos !== antPerdidos){ puesto = i+1; antEstrellas = x.estrellas; antPerdidos = x.perdidos; }
+    if (!ant || !igual(x, ant)){ puesto = i+1; ant = x; }
     x.puesto = puesto;
     x.empate = empate;
   });
   return lista;
+}
+/* el neto, tal y como se canta en el ranking */
+function chapaNeto(n){
+  var clase = n > 0 ? " bien" : n < 0 ? " mal" : "";
+  return '<span class="neto' + clase + '">' + (n > 0 ? "+" : "") + n + '</span>';
 }
 function medalla(x){
   if (x.empate) return '<span class="puesto igualados">–</span>';
@@ -1150,7 +1172,8 @@ function htmlHoy(){
              ' data-ir="' + x.nina.id + '" style="--acento:' + x.nina.acento + '">' +
              medalla(x) +
              '<span class="quien">' + (fotoDe(x.nina.id) ? avatar(x.nina, "carita") : '<span class="punto"></span>') + x.nina.nombre + sello + '</span>' +
-             '<span class="marca"><span>⭐ ' + x.estrellas + '</span><span>❤️ ' + x.corazones + '</span></span>' +
+             '<span class="marca"><span>⭐ ' + x.estrellas + '</span><span>❤️ ' + x.corazones + '</span>' +
+               chapaNeto(x.neto) + '</span>' +
            '</button>';
   }).join("");
 }
@@ -1186,7 +1209,8 @@ function htmlSemana(){
              '<button class="rank" type="button" data-ir="' + x.nina.id + '">' +
                medalla(x) +
                '<span class="quien">' + (fotoDe(x.nina.id) ? avatar(x.nina, "carita") : '<span class="punto"></span>') + x.nina.nombre + sellos + '</span>' +
-               '<span class="marca"><span>⭐ ' + x.estrellas + '</span><span>💔 ' + x.perdidos + '</span></span>' +
+               '<span class="marca"><span>⭐ ' + x.estrellas + '</span><span>💔 ' + x.perdidos + '</span>' +
+                 chapaNeto(x.neto) + '</span>' +
              '</button>' +
              '<div class="dias">' + chips + '</div>' +
            '</div>';

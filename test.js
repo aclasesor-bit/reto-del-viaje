@@ -203,9 +203,19 @@ async function esperarA(fn, ms, cada) {
   ok('el ranking canta estrellas y corazones', /⭐\s*5/.test(marcaPaula) && /❤️\s*5/.test(marcaPaula), marcaPaula.replace(/\n/g, ' '));
   ok('marca a la premiada con el regalo', /🎁/.test(marcaPaula));
   ok('de partida Alejandra va la ultima', /Alejandra/.test(orden[2]), orden.join(' > '));
+  ok('el ranking canta el neto de Paula (5 ⭐ y ningun ❤️ perdido)',
+     (await pag.locator('#listaRanking .rank', { hasText: 'Paula' }).locator('.neto').innerText()).trim() === '+5',
+     await pag.locator('#listaRanking .rank', { hasText: 'Paula' }).locator('.neto').innerText());
+  /* manda el neto, no las estrellas sueltas: Alejandra hace 3 ⭐ pero lleva 4 ❤️ perdidos */
   for (let i = 0; i < 3; i++) await pulsar('alejandra', 'bien');
   orden = await rankNombres();
-  ok('el ranking se recoloca al sumar estrellas', /Alejandra/.test(orden[1]), orden.join(' > '));
+  ok('con 3 ⭐ y 4 ❤️ perdidos (neto -1) Alejandra sigue por detras de Valeria (neto 0)',
+     /Alejandra/.test(orden[2]), orden.join(' > '));
+  for (let i = 0; i < 2; i++) await pulsar('valeria', 'mal');
+  orden = await rankNombres();
+  ok('perder corazones te hunde aunque no toques las estrellas',
+     /Valeria/.test(orden[2]), orden.join(' > '));
+  for (let i = 0; i < 2; i++) await pulsar('valeria', 'deshacer');
   for (let i = 0; i < 3; i++) await pulsar('alejandra', 'deshacer');
   orden = await rankNombres();
   ok('deshacer tambien recoloca el ranking', /Alejandra/.test(orden[2]), orden.join(' > '));
@@ -508,10 +518,19 @@ async function esperarA(fn, ms, cada) {
        est === esperado[n].e && per === esperado[n].p,
        'esperaba ⭐' + esperado[n].e + ' 💔' + esperado[n].p);
   }
+  for (const n of ['valeria', 'alejandra', 'paula']) {
+    const nombre = n.charAt(0).toUpperCase() + n.slice(1);
+    const chapa = (await pagS.locator('.semanera', { hasText: nombre }).locator('.neto').innerText()).trim();
+    ok('canta el neto de la semana de ' + nombre + ' (' + chapa + ')',
+       Number(chapa.replace('+', '')) === esperado[n].e - esperado[n].p,
+       'esperaba ' + (esperado[n].e - esperado[n].p));
+  }
   const ordenSem = await pagS.locator('.semanera .quien').allInnerTexts();
-  const mejor = Object.keys(esperado).sort((a, b) => esperado[b].e - esperado[a].e || esperado[a].p - esperado[b].p)[0];
-  ok('el primero de la semana es quien mas estrellas suma',
-     new RegExp(mejor, 'i').test(ordenSem[0]), ordenSem.join(' > ') + ' · esperaba ' + mejor);
+  const neto = n => esperado[n].e - esperado[n].p;
+  const porNeto = Object.keys(esperado).sort((a, b) => neto(b) - neto(a) || esperado[b].e - esperado[a].e);
+  ok('la semana va ordenada por el neto, no por las estrellas',
+     porNeto.every((n, i) => new RegExp(n, 'i').test(ordenSem[i])),
+     ordenSem.join(' > ') + ' · esperaba ' + porNeto.map(n => n + '(' + neto(n) + ')').join(' > '));
   const lunesAlejandra = await pagS.locator('.semanera', { hasText: 'Alejandra' }).locator('.dia').first().innerText();
   ok('el lunes que se quedo sin corazones sale ⛔', /⛔/.test(lunesAlejandra), lunesAlejandra.replace(/\n/g, ''));
   const lunesPaula = await pagS.locator('.semanera', { hasText: 'Paula' }).locator('.dia').first().innerText();
