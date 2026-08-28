@@ -321,6 +321,13 @@ body.sacude .envoltura{animation:sacudir .8s ease-out}
 }
 .dia b{font-size:.68rem;font-weight:800;color:var(--suave)}
 .dia i{font-style:normal;font-size:.95rem;font-weight:800;line-height:1.2}
+.dia u{
+  text-decoration:none;font-size:.72rem;font-weight:900;line-height:1.25;
+  padding:0 5px;border-radius:999px;background:#ebe6e0;color:var(--suave);
+}
+.dia u.mas{background:#d3efe1;color:var(--verde-osc)}
+.dia u.menos{background:#fbd7d4;color:var(--rojo-osc)}
+.dia u.hueco{background:none}
 .dia.premio{background:var(--verde-luz);color:var(--verde-osc)}
 .dia.castigo{background:var(--rojo-luz);color:var(--rojo-osc)}
 .dia.hoy{box-shadow:inset 0 0 0 2px var(--acento)}
@@ -1196,12 +1203,19 @@ function htmlSemana(){
       var clase = "dia";
       if (z.fecha === d) clase += " hoy";
       if (z.fecha > d) clase += " futuro";
-      var valor;
-      if (z.fecha > d) valor = "·";
-      else if (z.m.castigada){ clase += " castigo"; valor = "⛔"; }
-      else if (z.m.premiada){ clase += " premio"; valor = "🎁"; }
-      else valor = String(z.m.estrellas);
-      return '<span class="' + clase + '"><b>' + z.letra + '</b><i>' + valor + '</i></span>';
+      var valor, chapa;
+      if (z.fecha > d){
+        valor = "·";
+        chapa = '<u class="hueco">&nbsp;</u>';        /* para que todas midan igual */
+      } else {
+        if (z.m.castigada){ clase += " castigo"; valor = "⛔"; }
+        else if (z.m.premiada){ clase += " premio"; valor = "🎁"; }
+        else valor = String(z.m.estrellas);
+        var n = z.m.estrellas - z.m.perdidos;         /* el neto de ese dia */
+        chapa = '<u class="' + (n > 0 ? "mas" : n < 0 ? "menos" : "cero") + '">' +
+                (n > 0 ? "+" : "") + n + '</u>';
+      }
+      return '<span class="' + clase + '"><b>' + z.letra + '</b><i>' + valor + '</i>' + chapa + '</span>';
     }).join("");
     var sellos = (x.premios ? '<span class="sello">🎁' + (x.premios > 1 ? "×" + x.premios : "") + '</span>' : '') +
                  (x.castigos ? '<span class="sello">⛔' + (x.castigos > 1 ? "×" + x.castigos : "") + '</span>' : '');

@@ -524,6 +524,12 @@ async function esperarA(fn, ms, cada) {
     ok('canta el neto de la semana de ' + nombre + ' (' + chapa + ')',
        Number(chapa.replace('+', '')) === esperado[n].e - esperado[n].p,
        'esperaba ' + (esperado[n].e - esperado[n].p));
+    const porDia = await pagS.locator('.semanera', { hasText: nombre }).locator('.dia u').allInnerTexts();
+    ok('cada casilla de dia de ' + nombre + ' lleva su neto', porDia.length === 5, porDia.join(' '));
+    const suma = porDia.reduce((a, t) => a + (Number(t.trim().replace('+', '')) || 0), 0);
+    ok('los netos por dia de ' + nombre + ' suman el de la semana (' + suma + ')',
+       suma === esperado[n].e - esperado[n].p,
+       porDia.join(' ') + ' · esperaba ' + (esperado[n].e - esperado[n].p));
   }
   const ordenSem = await pagS.locator('.semanera .quien').allInnerTexts();
   const neto = n => esperado[n].e - esperado[n].p;
