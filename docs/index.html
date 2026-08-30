@@ -103,6 +103,7 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
   animation:anochecer 2.45s ease-out forwards;
 }
 #noche[hidden]{display:none}
+#noche.tormenta{background:radial-gradient(circle at 50% 28%, rgba(32,40,74,.55) 0%, rgba(5,9,26,.9) 100%)}
 @keyframes anochecer{0%{opacity:0}11%{opacity:1}74%{opacity:.92}100%{opacity:0}}
 #fuegos{position:fixed;inset:0;z-index:88;pointer-events:none}
 #fuegos[hidden]{display:none}
@@ -112,6 +113,18 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 }
 #fogonazo[hidden]{display:none}
 
+/* los relampagos de la tormenta */
+#fogonazo .rayo{
+  position:absolute;inset:0;background:#e2ecff;opacity:0;
+  animation:relampaguea 1.9s linear forwards;
+}
+@keyframes relampaguea{
+  0%,3%{opacity:0}
+  4%{opacity:.92} 6%{opacity:.08} 8%{opacity:.7} 11%{opacity:0}
+  31%{opacity:0} 33%{opacity:.55} 35%{opacity:.04} 37%{opacity:.4} 40%{opacity:0}
+  57%{opacity:0} 59%{opacity:.7} 61%{opacity:.06} 64%{opacity:.35} 68%{opacity:0}
+  100%{opacity:0}
+}
 /* el fogonazo de luz del primer instante */
 #fogonazo .relampago{
   position:absolute;inset:0;background:#fff;opacity:0;
@@ -913,16 +926,19 @@ function nota(ctx, hz, inicio, dur, vol, tipo){
 }
 /* el trueno de un cohete: ruido blanco filtrado que se apaga de golpe */
 var ruidoFx = null;
+function bufferRuido(ctx){
+  if (!ruidoFx){
+    var n = Math.floor(ctx.sampleRate * .5);
+    ruidoFx = ctx.createBuffer(1, n, ctx.sampleRate);
+    var d = ruidoFx.getChannelData(0);
+    for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  }
+  return ruidoFx;
+}
 function estampido(ctx, inicio, vol, agudo){
   try {
     var t = ctx.currentTime + inicio;
-    if (!ruidoFx){
-      var n = Math.floor(ctx.sampleRate * .5);
-      ruidoFx = ctx.createBuffer(1, n, ctx.sampleRate);
-      var d = ruidoFx.getChannelData(0);
-      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
-    }
-    var f = ctx.createBufferSource(); f.buffer = ruidoFx;
+    var f = ctx.createBufferSource(); f.buffer = bufferRuido(ctx);
     var paso = ctx.createBiquadFilter(); paso.type = "lowpass";
     paso.frequency.setValueAtTime(agudo || 2800, t);
     paso.frequency.exponentialRampToValueAtTime(240, t + .32);
@@ -931,6 +947,41 @@ function estampido(ctx, inicio, vol, agudo){
     g.gain.exponentialRampToValueAtTime(0.0001, t + .4);
     f.connect(paso); paso.connect(g); g.connect(ctx.destination);
     f.start(t); f.stop(t + .46);
+  } catch(err){}
+}
+/* el cristal que se raja: ruido agudo cortadisimo y unas esquirlas encima */
+function cristal(ctx, inicio, vol){
+  try {
+    var t = ctx.currentTime + inicio;
+    var f = ctx.createBufferSource(); f.buffer = bufferRuido(ctx);
+    var paso = ctx.createBiquadFilter(); paso.type = "highpass";
+    paso.frequency.setValueAtTime(1800, t);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + .22);
+    f.connect(paso); paso.connect(g); g.connect(ctx.destination);
+    f.start(t); f.stop(t + .26);
+    for (var i = 0; i < 6; i++){
+      nota(ctx, 2200 + Math.random() * 2600, inicio + .01 + Math.random() * .18, .1, .035);
+    }
+  } catch(err){}
+}
+/* el trueno: ruido muy grave que retumba y se va */
+function trueno(ctx, inicio, vol, largo){
+  try {
+    var t = ctx.currentTime + inicio, dur = largo || 1.5;
+    var f = ctx.createBufferSource(); f.buffer = bufferRuido(ctx); f.loop = true;
+    var paso = ctx.createBiquadFilter(); paso.type = "lowpass";
+    paso.frequency.setValueAtTime(420, t);
+    paso.frequency.exponentialRampToValueAtTime(90, t + dur);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + .09);
+    g.gain.exponentialRampToValueAtTime(vol * .45, t + dur * .45);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    f.connect(paso); paso.connect(g); g.connect(ctx.destination);
+    f.start(t); f.stop(t + dur + .05);
+    deslizar(ctx, 62, 34, inicio, dur * .8, vol * .8);
   } catch(err){}
 }
 /* nota que se desliza de una frecuencia a otra: el chispazo que sube y el batacazo que baja */
@@ -966,13 +1017,15 @@ function sonar(cual){
     estampido(ctx, 1.16, .16, 2200);
   }
   else if (cual === "mal"){
-    /* justo lo contrario: el tromboncito triste que baja escalon a escalon */
+    /* la tormenta: el cristal que se raja, el tromboncito que baja y dos truenos */
+    cristal(ctx, 0, .3);
     [[392,349],[349,311],[311,262],[262,196]].forEach(function(par,i){
-      deslizar(ctx, par[0], par[1], i*.26, .28, .155, "sawtooth");
+      deslizar(ctx, par[0], par[1], .18 + i*.26, .28, .15, "sawtooth");
     });
-    deslizar(ctx, 196, 62, 1.06, .72, .17, "sawtooth");
-    nota(ctx, 98, 1.1, .5, .1, "square");
-    deslizar(ctx, 120, 38, 1.5, .55, .15);
+    trueno(ctx, .3, .16, 1.3);
+    deslizar(ctx, 196, 62, 1.24, .72, .16, "sawtooth");
+    trueno(ctx, .95, .2, 1.5);
+    nota(ctx, 98, 1.28, .5, .09, "square");
   }
   else if (cual === "premio"){
     /* la grande: la fanfarria entera y las campanas del premio */
@@ -986,7 +1039,10 @@ function sonar(cual){
     [2093,2637,3136,2637].forEach(function(f,i){ nota(ctx, f, 1.5 + i*.12, .6, .05); });
   }
   else if (cual === "castigo"){
-    /* la derrota total: todo se hunde */
+    /* la derrota total: todo se hunde, y con mas tormenta encima */
+    cristal(ctx, 0, .34);
+    trueno(ctx, .35, .19, 1.6);
+    trueno(ctx, 1.35, .23, 1.9);
     [[392,370],[370,330],[330,294],[294,247],[247,196]].forEach(function(par,i){
       deslizar(ctx, par[0], par[1], i*.24, .26, .15, "sawtooth");
     });
@@ -1004,7 +1060,8 @@ function sonar(cual){
    destination-out, asi las estelas se apagan solas sin oscurecer la pagina. */
 var lienzoFx = document.getElementById("fuegos"), fctx = null;
 var brasas = [], cohetes = [], papeles = [], ardiendo = false;
-var relojFx = 0, finFuegos = 0;
+var grietas = [], trozos = [], lluvia = [];
+var relojFx = 0, finFuegos = 0, finLluvia = 0;
 function ahoraMs(){
   return (window.performance && performance.now) ? performance.now() : Date.now();
 }
@@ -1053,6 +1110,7 @@ function fogata(x, y){
 function lanzarFuegos(foco, acento){
   if (!lienzoFx || !lienzoFx.getContext) return;
   fctx = fctx || lienzoFx.getContext("2d");
+  lienzoFx.className = "fiesta";
   lienzoFx.hidden = false;
   medirLienzo();
   var an = window.innerWidth, al = window.innerHeight;
@@ -1096,6 +1154,118 @@ function lanzarFuegos(foco, acento){
 /* Todo se mueve por reloj y no por fotograma: en un movil que va a 20 fps la
    traca dura lo mismo (se ve mas a saltos, pero no en camara lenta) y no se
    desengancha de la musica ni de la animacion de la estrella. */
+/* ---- la tormenta: lo mismo que la traca, pero al reves ----
+   El cristal se raja desde el punto del golpe, caen los trozos del corazon,
+   llueve de verdad y truena. Las grietas se repintan enteras cada fotograma,
+   por eso el borrado parcial del lienzo no se las come. */
+function desatarTormenta(foco){
+  if (!lienzoFx || !lienzoFx.getContext) return;
+  fctx = fctx || lienzoFx.getContext("2d");
+  lienzoFx.className = "tormenta";
+  lienzoFx.hidden = false;
+  medirLienzo();
+  var an = window.innerWidth, al = window.innerHeight, i, k;
+  var arranque = ahoraMs();
+  finFuegos = arranque + 3400;
+  finLluvia = arranque + 2350;             /* amaina antes de que vuelva la luz */
+  relojFx = arranque;
+
+  /* 1. la raja del cristal: radios quebrados desde el golpe, con ramas y anillos */
+  var largoMax = Math.max(an, al), radios = [];
+  var cuantos = 13;
+  for (i = 0; i < cuantos; i++){
+    var ang = (i / cuantos) * Math.PI * 2 + (Math.random() - .5) * .38;
+    var largo = largoMax * (.42 + Math.random() * .6);
+    var tramos = 5 + (Math.random() * 3 | 0), puntos = [];
+    for (k = 1; k <= tramos; k++){
+      var d = largo * (k / tramos), desv = (Math.random() - .5) * largo * .11;
+      puntos.push({
+        x: Math.cos(ang) * d - Math.sin(ang) * desv,
+        y: Math.sin(ang) * d + Math.cos(ang) * desv,
+        f: k / tramos
+      });
+    }
+    var rama = null;
+    if (Math.random() < .55){
+      var desde = puntos[1 + (Math.random() * 2 | 0)];
+      var angR = ang + (Math.random() < .5 ? -1 : 1) * (.5 + Math.random() * .5);
+      var largoR = largo * (.22 + Math.random() * .28);
+      rama = { desde:desde, x: desde.x + Math.cos(angR) * largoR, y: desde.y + Math.sin(angR) * largoR };
+    }
+    radios.push({ puntos:puntos, rama:rama });
+  }
+  grietas.push({ x:foco.x, y:foco.y, radios:radios, anillos:[.24, .5, .78], nace:arranque, vida:1 });
+
+  /* 2. los trozos del corazon, que caen y rebotan en el suelo */
+  var rojos = ["#e0574f","#b9433c","#f07f78","#8e2f2a","#d9455f"];
+  for (i = 0; i < 18; i++){
+    trozos.push({
+      x: foco.x, y: foco.y,
+      vx: (Math.random() - .5) * 15, vy: -5 - Math.random() * 8,
+      giro: Math.random() * 6.28, vgiro: (Math.random() - .5) * .4,
+      t: 9 + Math.random() * 18, rebotes: 2, vida: 1,
+      c: rojos[i % rojos.length]
+    });
+  }
+
+  /* 3. la lluvia, que ya estaba cayendo antes de empezar */
+  for (i = 0; i < 130; i++){
+    lluvia.push({
+      x: Math.random() * an * 1.25 - an * .12,
+      y: Math.random() * al * 1.6 - al * .6,
+      v: 15 + Math.random() * 13, l: 11 + Math.random() * 17
+    });
+  }
+
+  if (!ardiendo){ ardiendo = true; requestAnimationFrame(pintarFuegos); }
+}
+function pintarGrieta(g, ahora){
+  var avance = Math.min(1, (ahora - g.nace) / 190);          /* se raja de golpe */
+  var apaga  = Math.max(0, 1 - Math.max(0, ahora - g.nace - 1500) / 800);
+  if (apaga <= 0) return false;
+  var i, k, r, pt;
+  fctx.save();
+  fctx.translate(g.x, g.y);
+  fctx.lineCap = "round"; fctx.lineJoin = "round";
+  fctx.shadowColor = "rgba(10,14,40,.85)"; fctx.shadowBlur = 7;
+  for (i = 0; i < g.radios.length; i++){
+    r = g.radios[i];
+    fctx.strokeStyle = "rgba(255,255,255," + (.88 * apaga).toFixed(3) + ")";
+    fctx.lineWidth = 2.6;
+    fctx.beginPath(); fctx.moveTo(0, 0);
+    for (k = 0; k < r.puntos.length; k++){
+      pt = r.puntos[k];
+      if (pt.f > avance) break;
+      fctx.lineTo(pt.x, pt.y);
+    }
+    fctx.stroke();
+    if (r.rama && avance > r.rama.desde.f + .12){
+      fctx.lineWidth = 1.5;
+      fctx.beginPath();
+      fctx.moveTo(r.rama.desde.x, r.rama.desde.y);
+      fctx.lineTo(r.rama.x, r.rama.y);
+      fctx.stroke();
+    }
+  }
+  /* los anillos que unen unos radios con otros */
+  fctx.lineWidth = 1.6;
+  fctx.strokeStyle = "rgba(255,255,255," + (.6 * apaga).toFixed(3) + ")";
+  for (i = 0; i < g.anillos.length; i++){
+    var f = g.anillos[i];
+    if (avance < f + .1) continue;
+    fctx.beginPath();
+    for (k = 0; k <= g.radios.length; k++){
+      var rr = g.radios[k % g.radios.length];
+      var p1 = rr.puntos[Math.min(rr.puntos.length - 1, Math.round(f * rr.puntos.length))];
+      if (k === 0) fctx.moveTo(p1.x * f * 1.6, p1.y * f * 1.6);
+      else fctx.lineTo(p1.x * f * 1.6, p1.y * f * 1.6);
+    }
+    fctx.stroke();
+  }
+  fctx.restore();
+  fctx.shadowBlur = 0;
+  return true;
+}
 function pintarFuegos(marca){
   var an = window.innerWidth, al = window.innerHeight, i, p;
   var ahora = marca || ahoraMs();
@@ -1135,9 +1305,55 @@ function pintarFuegos(marca){
     fctx.drawImage(brasa(p.c), p.x - t/2, p.y - t/2, t, t);
   }
 
-  /* el confeti es papel, no luz */
+  /* de aqui en adelante ya no es luz, es materia */
   fctx.globalCompositeOperation = "source-over";
   fctx.globalAlpha = 1;
+
+  /* la lluvia */
+  if (lluvia.length){
+    /* amaina en el ultimo medio segundo, para no seguir lloviendo con la luz puesta */
+    var fuerza = Math.max(0, Math.min(1, (finLluvia - ahora) / 500));
+    if (fuerza <= 0){ lluvia = []; }
+  }
+  if (lluvia.length){
+    fctx.strokeStyle = "rgba(198,218,255," + (.5 * fuerza).toFixed(3) + ")";
+    fctx.lineWidth = 1.5; fctx.lineCap = "round";
+    fctx.beginPath();
+    for (i = 0; i < lluvia.length; i++){
+      p = lluvia[i];
+      p.x += p.v * .22 * paso; p.y += p.v * paso;
+      if (p.y - p.l > al){ p.y = -p.l - Math.random() * al * .3; p.x = Math.random() * an * 1.25 - an * .12; }
+      fctx.moveTo(p.x, p.y);
+      fctx.lineTo(p.x - p.l * .22, p.y - p.l);
+    }
+    fctx.stroke();
+  }
+
+  /* los trozos del corazon */
+  for (i = trozos.length - 1; i >= 0; i--){
+    p = trozos[i];
+    p.x += p.vx * paso; p.y += p.vy * paso; p.vy += .42 * paso;
+    p.vx *= Math.pow(.995, paso); p.giro += p.vgiro * paso;
+    if (p.y > al - 6 && p.rebotes > 0 && p.vy > 0){
+      p.y = al - 6; p.vy *= -.42; p.vx *= .62; p.vgiro *= .5; p.rebotes--;
+    }
+    if (p.rebotes <= 0) p.vida -= .014 * paso;
+    if (p.vida <= 0 || p.y > al + 60){ trozos.splice(i, 1); continue; }
+    fctx.globalAlpha = Math.max(0, p.vida);
+    fctx.save();
+    fctx.translate(p.x, p.y); fctx.rotate(p.giro);
+    fctx.fillStyle = p.c;
+    fctx.beginPath();
+    fctx.moveTo(0, -p.t * .6); fctx.lineTo(p.t * .5, p.t * .45); fctx.lineTo(-p.t * .45, p.t * .5);
+    fctx.closePath(); fctx.fill();
+    fctx.restore();
+    fctx.globalAlpha = 1;
+  }
+
+  /* y la raja del cristal, repintada entera cada vez */
+  for (i = grietas.length - 1; i >= 0; i--){
+    if (!pintarGrieta(grietas[i], ahora)) grietas.splice(i, 1);
+  }
   for (i = papeles.length - 1; i >= 0; i--){
     p = papeles[i];
     p.x += p.vx * paso; p.y += p.vy * paso;
@@ -1152,11 +1368,13 @@ function pintarFuegos(marca){
     fctx.restore();
   }
 
-  if (!seAcaba && (brasas.length || cohetes.length || papeles.length)){
+  if (!seAcaba && (brasas.length || cohetes.length || papeles.length ||
+                   grietas.length || trozos.length || lluvia.length)){
     requestAnimationFrame(pintarFuegos);
   } else {
     ardiendo = false;
     brasas = []; cohetes = []; papeles = [];
+    grietas = []; trozos = []; lluvia = [];
     fctx.setTransform(1,0,0,1,0,0);
     fctx.clearRect(0, 0, lienzoFx.width, lienzoFx.height);
     lienzoFx.hidden = true;
@@ -1208,7 +1426,7 @@ function fogonazo(tipo, ninaId){
   capaFx.style.setProperty("--letra", gana ? "#c98a06" : "#b9433c");
 
   var html = gana ? '<span class="relampago"></span><span class="rayos"></span>'
-                  : '<span class="vineta"></span>';
+                  : '<span class="vineta"></span><span class="rayo"></span>';
   html += '<span class="destello"></span>' +
           '<span class="onda"></span><span class="onda dos"></span><span class="onda tres"></span>' +
           '<span class="astro ' + (gana ? "gana" : "pierde") + '">' + (gana ? ASTRO_BIEN : ASTRO_MAL) + '</span>' +
@@ -1243,10 +1461,11 @@ function fogonazo(tipo, ninaId){
   }
   /* y encima cae una cortina de lado a lado */
   var gotas = gana ? LLUVIA_BIEN : LLUVIA_MAL;
-  for (var j = 0; j < 22; j++){
+  var cuantasGotas = gana ? 22 : 10;       /* en la tormenta ya cae lluvia de verdad */
+  for (var j = 0; j < cuantasGotas; j++){
     html += '<span class="gota" style="' +
               'font-size:' + (1 + Math.random() * 1.5).toFixed(2) + 'rem;' +
-              '--l:' + (2 + (j / 22) * 96 + Math.random() * 3).toFixed(1) + '%;' +
+              '--l:' + (2 + (j / cuantasGotas) * 96 + Math.random() * 3).toFixed(1) + '%;' +
               '--g:' + Math.round((Math.random() - .5) * 900) + 'deg;' +
               '--t:' + (1.5 + Math.random() * .8).toFixed(2) + 's;' +
               '--r:' + (Math.random() * .55).toFixed(3) + 's' +
@@ -1258,17 +1477,17 @@ function fogonazo(tipo, ninaId){
   clearTimeout(tempFx);
   tempFx = setTimeout(function(){ capaFx.hidden = true; capaFx.innerHTML = ""; }, 2600);
 
-  /* los fuegos artificiales solo en la buena, y con la luz apagada */
-  if (gana){
-    if (capaNoche){
-      capaNoche.hidden = true;
-      void capaNoche.offsetWidth;          /* para que la animacion vuelva a empezar */
-      capaNoche.hidden = false;
-      clearTimeout(tempNoche);
-      tempNoche = setTimeout(function(){ capaNoche.hidden = true; }, 2550);
-    }
-    lanzarFuegos(foco, aRGB(nina ? nina.acento : "#f7c948"));
+  /* se apaga la luz en las dos: para la traca y para la tormenta */
+  if (capaNoche){
+    capaNoche.hidden = true;
+    void capaNoche.offsetWidth;            /* para que la animacion vuelva a empezar */
+    capaNoche.className = gana ? "" : "tormenta";
+    capaNoche.hidden = false;
+    clearTimeout(tempNoche);
+    tempNoche = setTimeout(function(){ capaNoche.hidden = true; }, 2550);
   }
+  if (gana) lanzarFuegos(foco, aRGB(nina ? nina.acento : "#f7c948"));
+  else      desatarTormenta(foco);
 
   /* la pagina de debajo tambien se entera */
   var cuerpo = document.body;

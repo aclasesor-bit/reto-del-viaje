@@ -31,10 +31,14 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
   por reloj y no por fotograma**, así que en un móvil lento se ve a saltos pero dura lo mismo y no se
   desengancha de la música; hay además un tope duro a los 3,4 s. La fanfarria lleva los truenos
   sincronizados con los estallidos.
-- **Al rojo, lo contrario** (sin fuegos, claro): la pantalla se oscurece desde los bordes, corazón
-  roto gigante que se sacude y se desploma, pedazos y lágrimas cayendo, **la página tiembla** y suena
-  un tromboncito triste que se hunde. El premio de las 5 ⭐ y quedarse a 0 ❤️ tienen sus propias
-  versiones, más largas. Todo se salta entero si el móvil pide menos movimiento.
+- **Tormenta al dar el rojo**, con el mismo motor y la misma ambición: **la pantalla se raja como un
+  cristal roto** (grietas quebradas desde el punto del golpe, con ramas y anillos, que se repintan
+  enteras cada fotograma), se hace de noche azul, **caen tres relámpagos**, **llueve de verdad** y los
+  **trozos del corazón salen disparados, rebotan en el suelo** y se apagan. Suena el cristal al
+  rajarse, el tromboncito que se hunde y **dos truenos**. La página tiembla. La lluvia amaina antes de
+  que vuelva la luz.
+- El premio de las 5 ⭐ y quedarse a 0 ❤️ tienen sus propias versiones, más largas. Todo se salta
+  entero si el móvil pide menos movimiento.
 - **Los dos móviles a la vez.** Cada acción es un evento con su identificador; el servidor se queda
   con la unión de lo que manda cada móvil, así que da igual quién apunte. Sin cobertura se apunta
   igual y se envía solo al recuperarla.
@@ -56,7 +60,7 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
 ```bash
 python make-icons.py                     # regenera los iconos de la PWA
 cd docs && python -m http.server 8765    # servir en local
-node test.js http://127.0.0.1:8765/      # 197 comprobaciones en Chrome con tamaño de iPhone
+node test.js http://127.0.0.1:8765/      # 200 comprobaciones en Chrome con tamaño de iPhone
 MOTOR=webkit node test.js <url>          # las mismas en WebKit (motor de Safari)
 node test.js https://aclasesor-bit.github.io/reto-del-viaje/   # comprobar lo publicado
 ```

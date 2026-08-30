@@ -122,12 +122,17 @@ async function esperarA(fn, ms, cada) {
   ok('no toca a las hermanas', (await corazones('paula')) === 5 && (await corazones('alejandra')) === 5);
   ok('el rojo lanza el fogonazo del corazon roto',
      await pag.locator('#fogonazo .astro.pierde').isVisible());
-  ok('el fogonazo del rojo tira pedazos y cortina',
+  ok('el fogonazo del rojo tira pedazos y una cortina corta (la lluvia de verdad va en el lienzo)',
      (await pag.locator('#fogonazo .chispa').count()) === 34 &&
-     (await pag.locator('#fogonazo .gota').count()) === 22);
+     (await pag.locator('#fogonazo .gota').count()) === 10);
   ok('el rojo cierra la pantalla en oscuro', await pag.locator('#fogonazo .vineta').isVisible());
-  ok('el rojo NO lanza fuegos artificiales (eso es solo de la estrella)',
-     await pag.evaluate(() => document.getElementById('fuegos').hidden));
+  ok('el rojo desata la tormenta en el lienzo', await pag.evaluate(() => {
+    const c = document.getElementById('fuegos');
+    return !c.hidden && c.className === 'tormenta';
+  }));
+  ok('la tormenta apaga la luz con su propio color',
+     await pag.evaluate(() => document.getElementById('noche').className === 'tormenta'));
+  ok('y caen relampagos', await pag.locator('#fogonazo .rayo').isVisible());
   ok('el rojo sacude la pagina', await pag.evaluate(() => document.body.classList.contains('sacude')));
   ok('el rojo canta un aviso a lo grande', /OH|VAYA|UY/.test(await pag.locator('#fogonazo .cartel').innerText()));
 
@@ -139,10 +144,17 @@ async function esperarA(fn, ms, cada) {
   ok('el verde lanza el fogonazo de la estrella',
      await pag.locator('#fogonazo .astro.gana').isVisible());
   ok('el verde abre el sol de rayos', await pag.locator('#fogonazo .rayos').isVisible());
-  ok('el verde enciende los fuegos artificiales',
-     await pag.evaluate(() => !document.getElementById('fuegos').hidden));
-  ok('y apaga la luz para que se vean',
-     await pag.evaluate(() => !document.getElementById('noche').hidden));
+  ok('el verde enciende los fuegos artificiales', await pag.evaluate(() => {
+    const c = document.getElementById('fuegos');
+    return !c.hidden && c.className === 'fiesta';
+  }));
+  ok('y apaga la luz para que se vean, pero sin tinte de tormenta',
+     await pag.evaluate(() => {
+       const n = document.getElementById('noche');
+       return !n.hidden && n.className !== 'tormenta';
+     }));
+  ok('el verde no truena: nada de relampagos',
+     (await pag.locator('#fogonazo .rayo').count()) === 0);
   ok('hay cohetes y confeti volando de verdad', await pag.evaluate(() => {
     const c = document.getElementById('fuegos');
     return c.width > 0 && c.height > 0;
