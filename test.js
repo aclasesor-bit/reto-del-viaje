@@ -126,6 +126,8 @@ async function esperarA(fn, ms, cada) {
      (await pag.locator('#fogonazo .chispa').count()) === 34 &&
      (await pag.locator('#fogonazo .gota').count()) === 22);
   ok('el rojo cierra la pantalla en oscuro', await pag.locator('#fogonazo .vineta').isVisible());
+  ok('el rojo NO lanza fuegos artificiales (eso es solo de la estrella)',
+     await pag.evaluate(() => document.getElementById('fuegos').hidden));
   ok('el rojo sacude la pagina', await pag.evaluate(() => document.body.classList.contains('sacude')));
   ok('el rojo canta un aviso a lo grande', /OH|VAYA|UY/.test(await pag.locator('#fogonazo .cartel').innerText()));
 
@@ -137,10 +139,26 @@ async function esperarA(fn, ms, cada) {
   ok('el verde lanza el fogonazo de la estrella',
      await pag.locator('#fogonazo .astro.gana').isVisible());
   ok('el verde abre el sol de rayos', await pag.locator('#fogonazo .rayos').isVisible());
-  ok('el verde canta un aviso a lo grande', /BIEN|GENIAL|BRAVO|CAMPEONA/.test(await pag.locator('#fogonazo .cartel').innerText()));
+  ok('el verde enciende los fuegos artificiales',
+     await pag.evaluate(() => !document.getElementById('fuegos').hidden));
+  ok('y apaga la luz para que se vean',
+     await pag.evaluate(() => !document.getElementById('noche').hidden));
+  ok('hay cohetes y confeti volando de verdad', await pag.evaluate(() => {
+    const c = document.getElementById('fuegos');
+    return c.width > 0 && c.height > 0;
+  }));
+  ok('ni los fuegos ni la noche interceptan los toques', await pag.evaluate(() =>
+     getComputedStyle(document.getElementById('fuegos')).pointerEvents === 'none' &&
+     getComputedStyle(document.getElementById('noche')).pointerEvents === 'none'));
+  ok('el cartel saluda a la nina por su nombre',
+     /PAULA/.test(await pag.locator('#fogonazo .cartel').innerText()));
+  ok('sale el +1 de la estrella', await pag.locator('#fogonazo .masuno').isVisible());
+  ok('el verde canta un aviso a lo grande', /BIEN|GENIAL|BRAVO|CAMPEONA|HACE/.test(await pag.locator('#fogonazo .cartel').innerText()));
+  /* se mide el cuerpo de letra y no el rectangulo, porque la estrella gira en 3D
+     y a mitad de giro su ancho proyectado es pequeno */
   ok('la estrella ocupa media pantalla de ancho', await pag.evaluate(() => {
-    const c = document.querySelector('#fogonazo .astro').getBoundingClientRect();
-    return c.width > window.innerWidth * 0.5;
+    const t = parseFloat(getComputedStyle(document.querySelector('#fogonazo .astro')).fontSize);
+    return t > window.innerWidth * 0.45;
   }));
   ok('el fogonazo sale de la tarjeta de esa nina', await pag.evaluate(() => {
     const capa = document.getElementById('fogonazo');
@@ -154,6 +172,10 @@ async function esperarA(fn, ms, cada) {
      await pag.evaluate(() => document.getElementById('fogonazo').hidden), 5000, 150));
   ok('la pagina deja de temblar sola', await esperarA(async () =>
      await pag.evaluate(() => !document.body.className.match(/celebra|sacude/)), 3000, 150));
+  ok('los fuegos se apagan solos y sueltan el lienzo', await esperarA(async () =>
+     await pag.evaluate(() => document.getElementById('fuegos').hidden), 8000, 200));
+  ok('y vuelve la luz', await esperarA(async () =>
+     await pag.evaluate(() => document.getElementById('noche').hidden), 3000, 150));
   await pulsar('valeria', 'bien');
   ok('marcadores independientes (Valeria 4 corazones y 1 estrella)',
      (await corazones('valeria')) === 4 && (await estrellas('valeria')) === 1);
@@ -541,7 +563,11 @@ async function esperarA(fn, ms, cada) {
   ok('el lunes que se quedo sin corazones sale ⛔', /⛔/.test(lunesAlejandra), lunesAlejandra.replace(/\n/g, ''));
   const lunesPaula = await pagS.locator('.semanera', { hasText: 'Paula' }).locator('.dia').first().innerText();
   ok('el lunes que llego al premio sale 🎁', /🎁/.test(lunesPaula), lunesPaula.replace(/\n/g, ''));
-  ok('el dia de hoy va resaltado', (await pagS.locator('.semanera').first().locator('.dia.hoy').count()) === 1);
+  const finde = [0, 6].indexOf(new Date().getDay()) >= 0;
+  const casillasHoy = await pagS.locator('.semanera').first().locator('.dia.hoy').count();
+  ok(finde ? 'en fin de semana no hay casilla de hoy, que la semana es L-V'
+           : 'el dia de hoy va resaltado',
+     casillasHoy === (finde ? 0 : 1), 'casillas marcadas como hoy: ' + casillasHoy);
   ok('los dias que aun no han llegado salen apagados',
      (await pagS.locator('.semanera').first().locator('.dia.futuro').count()) === 5 - dias.length);
   ok('hoy sigue estando a cero pese al historial de la semana',

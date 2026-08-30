@@ -96,11 +96,28 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 .tarjeta.salta{animation:saltar .45s ease}
 
 /* ---------- fogonazo: la super animacion, a pantalla completa ---------- */
+/* se apaga la luz un momento: sobre fondo claro los fuegos no se verian */
+#noche{
+  position:fixed;inset:0;z-index:87;pointer-events:none;opacity:0;
+  background:radial-gradient(circle at 50% 32%, rgba(26,22,58,.62) 0%, rgba(8,6,24,.88) 100%);
+  animation:anochecer 2.45s ease-out forwards;
+}
+#noche[hidden]{display:none}
+@keyframes anochecer{0%{opacity:0}11%{opacity:1}74%{opacity:.92}100%{opacity:0}}
+#fuegos{position:fixed;inset:0;z-index:88;pointer-events:none}
+#fuegos[hidden]{display:none}
 #fogonazo{
-  position:fixed;inset:0;z-index:90;pointer-events:none;overflow:hidden;
+  position:fixed;inset:0;z-index:90;pointer-events:none;overflow:hidden;perspective:1000px;
   --cx:50%;--cy:42%;--tinte:rgba(247,201,72,.55);--vivo:#f7c948;--letra:#c98a06;
 }
 #fogonazo[hidden]{display:none}
+
+/* el fogonazo de luz del primer instante */
+#fogonazo .relampago{
+  position:absolute;inset:0;background:#fff;opacity:0;
+  animation:relampaguear .5s ease-out forwards;
+}
+@keyframes relampaguear{0%{opacity:0}8%{opacity:.85}100%{opacity:0}}
 
 /* el sol de rayos que barre toda la pantalla (solo en la buena) */
 #fogonazo .rayos{
@@ -109,13 +126,13 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
   background:repeating-conic-gradient(from 0deg, var(--vivo) 0deg 7deg, transparent 7deg 23deg);
   -webkit-mask-image:radial-gradient(circle, #000 0%, #000 22%, transparent 58%);
           mask-image:radial-gradient(circle, #000 0%, #000 22%, transparent 58%);
-  animation:radiar 2s cubic-bezier(.1,.72,.3,1) forwards;
+  animation:radiar 1.05s cubic-bezier(.1,.72,.3,1) forwards;
 }
 @keyframes radiar{
   0%{transform:rotate(0) scale(.04);opacity:0}
-  10%{opacity:.8}
-  55%{opacity:.42}
-  100%{transform:rotate(52deg) scale(1);opacity:0}
+  14%{opacity:.6}
+  55%{opacity:.3}
+  100%{transform:rotate(34deg) scale(1);opacity:0}
 }
 /* la oscuridad que se cierra desde los bordes (solo en la mala) */
 #fogonazo .vineta{
@@ -128,7 +145,7 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 #fogonazo .destello{
   position:absolute;inset:0;
   background:radial-gradient(circle at var(--cx) var(--cy), var(--tinte) 0%, transparent 68%);
-  animation:destellar 1.1s ease-out forwards;
+  animation:destellar .75s ease-out forwards;
 }
 #fogonazo .onda{
   position:absolute;left:var(--cx);top:var(--cy);width:26px;height:26px;margin:-13px 0 0 -13px;
@@ -143,20 +160,41 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
   font-size:min(64vw, 48vh);line-height:1;
   filter:drop-shadow(0 16px 34px rgba(30,26,20,.4));
 }
+/* el +1 que sale volando de la estrella */
+#fogonazo .masuno{
+  position:absolute;left:var(--cx);top:var(--cy);
+  font-size:clamp(1.8rem, 9vw, 3.4rem);font-weight:900;color:#fff;
+  -webkit-text-stroke:2.5px var(--letra);paint-order:stroke fill;
+  text-shadow:0 4px 14px rgba(30,26,20,.35);white-space:nowrap;opacity:0;
+  animation:volar 1.5s cubic-bezier(.2,.9,.3,1) .28s forwards;
+}
+@keyframes volar{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  18%{opacity:1;transform:translate(-50%,-90%) scale(1.25)}
+  60%{opacity:1;transform:translate(-50%,-190%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-300%) scale(.9)}
+}
 #fogonazo .cartel{
-  position:absolute;left:50%;top:13%;transform:translate(-50%,0);
+  position:absolute;left:50%;top:11%;transform:translate(-50%,0);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  white-space:nowrap;opacity:0;
+  animation:cartelear 2.2s cubic-bezier(.2,1.1,.35,1) forwards;
+}
+#fogonazo .cartel b{
   font-size:clamp(2rem, 12.5vw, 5rem);font-weight:900;letter-spacing:.02em;
   color:#fff;-webkit-text-stroke:3px var(--letra);paint-order:stroke fill;
   text-shadow:0 6px 0 rgba(0,0,0,.12), 0 14px 30px rgba(30,26,20,.3);
-  white-space:nowrap;opacity:0;
-  animation:cartelear 2.1s cubic-bezier(.2,1.1,.35,1) forwards;
+}
+#fogonazo .cartel i{
+  font-style:normal;font-size:clamp(1.1rem, 6.2vw, 2.3rem);font-weight:900;letter-spacing:.08em;
+  color:#fff;-webkit-text-stroke:2px var(--letra);paint-order:stroke fill;
 }
 @keyframes cartelear{
   0%{opacity:0;transform:translate(-50%,26px) scale(.4) rotate(-7deg)}
-  14%{opacity:1;transform:translate(-50%,0) scale(1.18) rotate(3deg)}
-  24%{transform:translate(-50%,0) scale(.97) rotate(-2deg)}
-  34%{transform:translate(-50%,0) scale(1.06) rotate(0)}
-  46%,78%{opacity:1;transform:translate(-50%,0) scale(1) rotate(0)}
+  12%{opacity:1;transform:translate(-50%,0) scale(1.18) rotate(3deg)}
+  21%{transform:translate(-50%,0) scale(.97) rotate(-2deg)}
+  30%{transform:translate(-50%,0) scale(1.06) rotate(0)}
+  42%,80%{opacity:1;transform:translate(-50%,0) scale(1) rotate(0)}
   100%{opacity:0;transform:translate(-50%,-30px) scale(1.1) rotate(0)}
 }
 #fogonazo .chispa,
@@ -182,17 +220,18 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
   85%{opacity:1}
   100%{transform:translateY(128vh) rotate(var(--g));opacity:0}
 }
+/* la estrella gira en el aire, no solo se hace grande */
 @keyframes estallar{
-  0%{transform:translate(-50%,-50%) scale(.06) rotate(-200deg);opacity:0}
-  16%{transform:translate(-50%,-50%) scale(1.18) rotate(16deg);opacity:1}
-  27%{transform:translate(-50%,-50%) scale(.82) rotate(-9deg)}
-  38%{transform:translate(-50%,-52%) scale(1.06) rotate(5deg)}
-  49%{transform:translate(-50%,-50%) scale(.94) rotate(-3deg)}
-  60%{transform:translate(-50%,-51%) scale(1.02) rotate(2deg)}
-  72%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1}
-  100%{transform:translate(-50%,-62%) scale(2.6) rotate(0);opacity:0}
+  0%{transform:translate(-50%,-50%) scale(.05) rotateY(-560deg) rotateZ(-45deg);opacity:0}
+  16%{transform:translate(-50%,-50%) scale(1.3) rotateY(-40deg) rotateZ(16deg);opacity:1}
+  28%{transform:translate(-50%,-50%) scale(.86) rotateY(30deg) rotateZ(-10deg)}
+  40%{transform:translate(-50%,-53%) scale(1.1) rotateY(-14deg) rotateZ(6deg)}
+  52%{transform:translate(-50%,-50%) scale(.96) rotateY(8deg) rotateZ(-3deg)}
+  64%{transform:translate(-50%,-52%) scale(1.04) rotateY(0deg) rotateZ(2deg)}
+  76%{transform:translate(-50%,-50%) scale(1) rotateY(0) rotateZ(0);opacity:1}
+  100%{transform:translate(-50%,-64%) scale(3) rotateY(0) rotateZ(0);opacity:0}
 }
-#fogonazo .astro.gana{animation:estallar 2.1s cubic-bezier(.2,1,.35,1) forwards}
+#fogonazo .astro.gana{animation:estallar 1.7s cubic-bezier(.2,1,.35,1) forwards}
 @keyframes desplomar{
   0%{transform:translate(-50%,-50%) scale(.2) rotate(0);opacity:0}
   12%{transform:translate(-50%,-50%) scale(1.14) rotate(0);opacity:1}
@@ -207,7 +246,7 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
 #fogonazo .astro.pierde{animation:desplomar 2.1s cubic-bezier(.4,.02,.65,1) forwards}
 
 /* la propia pagina reacciona: un botecito al ganar, un temblor al perder */
-@keyframes celebrar{0%,100%{transform:scale(1)}30%{transform:scale(1.035)}55%{transform:scale(.995)}}
+@keyframes celebrar{0%,100%{transform:scale(1)}18%{transform:scale(1.05)}42%{transform:scale(.988)}68%{transform:scale(1.014)}}
 @keyframes sacudir{
   0%,100%{transform:translate3d(0,0,0)}
   8%{transform:translate3d(-11px,4px,0)}
@@ -219,7 +258,7 @@ button{font-family:inherit;touch-action:manipulation;cursor:pointer;-webkit-user
   76%{transform:translate3d(-3px,2px,0)}
   90%{transform:translate3d(2px,-1px,0)}
 }
-body.celebra .envoltura{animation:celebrar .7s ease-out}
+body.celebra .envoltura{animation:celebrar .85s cubic-bezier(.2,1.1,.35,1)}
 body.sacude .envoltura{animation:sacudir .8s ease-out}
 
 /* ---------- avisos ---------- */
@@ -519,6 +558,8 @@ body.sacude .envoltura{animation:sacudir .8s ease-out}
 </section>
 
 <canvas id="confeti" hidden></canvas>
+<div id="noche" hidden aria-hidden="true"></div>
+<canvas id="fuegos" hidden></canvas>
 <div id="fogonazo" hidden aria-hidden="true"></div>
 
 <div class="velo" id="velo" hidden>
@@ -870,6 +911,28 @@ function nota(ctx, hz, inicio, dur, vol, tipo){
     o.stop(ctx.currentTime + inicio + dur + 0.03);
   } catch(err){}
 }
+/* el trueno de un cohete: ruido blanco filtrado que se apaga de golpe */
+var ruidoFx = null;
+function estampido(ctx, inicio, vol, agudo){
+  try {
+    var t = ctx.currentTime + inicio;
+    if (!ruidoFx){
+      var n = Math.floor(ctx.sampleRate * .5);
+      ruidoFx = ctx.createBuffer(1, n, ctx.sampleRate);
+      var d = ruidoFx.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    }
+    var f = ctx.createBufferSource(); f.buffer = ruidoFx;
+    var paso = ctx.createBiquadFilter(); paso.type = "lowpass";
+    paso.frequency.setValueAtTime(agudo || 2800, t);
+    paso.frequency.exponentialRampToValueAtTime(240, t + .32);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + .4);
+    f.connect(paso); paso.connect(g); g.connect(ctx.destination);
+    f.start(t); f.stop(t + .46);
+  } catch(err){}
+}
 /* nota que se desliza de una frecuencia a otra: el chispazo que sube y el batacazo que baja */
 function deslizar(ctx, hz1, hz2, inicio, dur, vol, tipo){
   try {
@@ -896,6 +959,11 @@ function sonar(cual){
     nota(ctx, 130, .93, .9, .11);
     deslizar(ctx, 1046, 3136, .95, .7, .05);
     [1568,2093,2637].forEach(function(f,i){ nota(ctx, f, 1.18 + i*.1, .55, .05); });
+    /* y los truenos de los cohetes, a la vez que estallan en pantalla */
+    estampido(ctx, .02, .1, 3600);
+    estampido(ctx, .74, .13);
+    estampido(ctx, .95, .12, 3200);
+    estampido(ctx, 1.16, .16, 2200);
   }
   else if (cual === "mal"){
     /* justo lo contrario: el tromboncito triste que baja escalon a escalon */
@@ -930,8 +998,178 @@ function sonar(cual){
   else if (cual === "deshacer"){ nota(ctx, 520, 0, .1, .1); }
 }
 
+/* ---------------- fuegos artificiales de verdad (canvas) ----------------
+   Cohetes que suben, estallan y dejan estela, mas dos canones de confeti.
+   El truco de la estela: en vez de borrar el lienzo, se le baja el alfa con
+   destination-out, asi las estelas se apagan solas sin oscurecer la pagina. */
+var lienzoFx = document.getElementById("fuegos"), fctx = null;
+var brasas = [], cohetes = [], papeles = [], ardiendo = false;
+var relojFx = 0, finFuegos = 0;
+function ahoraMs(){
+  return (window.performance && performance.now) ? performance.now() : Date.now();
+}
+var BRASAS = {};
+var PALETA = [[255,206,84],[255,138,80],[255,90,140],[120,200,255],[150,255,190],[200,150,255]];
+
+function brasa(rgb){
+  var clave = rgb.join(",");
+  if (BRASAS[clave]) return BRASAS[clave];
+  var t = 44, c = document.createElement("canvas");
+  c.width = c.height = t;
+  var g = c.getContext("2d"), rad = g.createRadialGradient(t/2, t/2, 0, t/2, t/2, t/2);
+  rad.addColorStop(0,   "rgba(255,255,255,.8)");
+  rad.addColorStop(.1,  "rgba(" + clave + ",.95)");
+  rad.addColorStop(.45, "rgba(" + clave + ",.42)");
+  rad.addColorStop(1,   "rgba(" + clave + ",0)");
+  g.fillStyle = rad; g.fillRect(0, 0, t, t);
+  BRASAS[clave] = c;
+  return c;
+}
+function medirLienzo(){
+  var r = window.devicePixelRatio || 1;
+  lienzoFx.width = window.innerWidth * r; lienzoFx.height = window.innerHeight * r;
+  lienzoFx.style.width = window.innerWidth + "px"; lienzoFx.style.height = window.innerHeight + "px";
+  fctx.setTransform(r, 0, 0, r, 0, 0);
+}
+function sembrarBrasas(x, y, cuantas, fuerza, rgb, mezcla){
+  for (var i = 0; i < cuantas; i++){
+    var ang = Math.random() * Math.PI * 2;
+    var v = fuerza * (.25 + Math.random() * .75);
+    brasas.push({
+      x:x, y:y, vx:Math.cos(ang)*v, vy:Math.sin(ang)*v,
+      g:.09 + Math.random()*.06, vida:1, baja:.011 + Math.random()*.012,
+      t:15 + Math.random()*23,
+      c: mezcla ? PALETA[(Math.random()*PALETA.length)|0] : rgb
+    });
+  }
+}
+/* el destello blanco del instante del estallido */
+function fogata(x, y){
+  for (var i = 0; i < 3; i++){
+    brasas.push({ x:x, y:y, vx:(Math.random()-.5)*1.2, vy:(Math.random()-.5)*1.2,
+                  g:0, vida:.8, baja:.16, t:38 + Math.random()*22, c:[255,240,200] });
+  }
+}
+function lanzarFuegos(foco, acento){
+  if (!lienzoFx || !lienzoFx.getContext) return;
+  fctx = fctx || lienzoFx.getContext("2d");
+  lienzoFx.hidden = false;
+  medirLienzo();
+  var an = window.innerWidth, al = window.innerHeight;
+  var arranque = ahoraMs();
+  finFuegos = arranque + 3400;                /* pase lo que pase, a los 3,4 s se acaba */
+  relojFx = arranque;
+
+  /* 1. el estallido de la propia estrella */
+  sembrarBrasas(foco.x, foco.y, 70, 7.5, [255,206,84], false);
+  sembrarBrasas(foco.x, foco.y, 26, 4.5, acento, false);
+
+  /* 2. tres cohetes que suben desde abajo y estallan a media altura */
+  for (var i = 0; i < 3; i++){
+    cohetes.push({
+      x: an * (.18 + Math.random() * .64), y: al + 12,
+      vx: (Math.random() - .5) * 1.8, vy: -(13.5 + Math.random() * 3),
+      sale: arranque + 50 + i * 200 + Math.random() * 80,
+      techo: al * (.14 + Math.random() * .26),
+      grande: i === 2,
+      c: PALETA[(Math.random() * PALETA.length) | 0]
+    });
+  }
+
+  /* 3. dos canones de confeti desde las esquinas de abajo */
+  var colores = ["#e46a8b","#7b6cd9","#2aa8a8","#f0a92c","#2e9c6b","#e0574f","#f7c948"];
+  [[0, -1.02], [an, -2.12]].forEach(function(canon){
+    for (var k = 0; k < 55; k++){
+      var v = 13 + Math.random() * 9, ang = canon[1] + (Math.random() - .5) * .5;
+      papeles.push({
+        x: canon[0], y: al + 6,
+        vx: Math.cos(ang) * v, vy: Math.sin(ang) * v,
+        an: 5 + Math.random() * 6, al: 8 + Math.random() * 9,
+        giro: Math.random() * Math.PI, vgiro: -.2 + Math.random() * .4,
+        vida: 1, color: colores[k % colores.length]
+      });
+    }
+  });
+
+  if (!ardiendo){ ardiendo = true; requestAnimationFrame(pintarFuegos); }
+}
+/* Todo se mueve por reloj y no por fotograma: en un movil que va a 20 fps la
+   traca dura lo mismo (se ve mas a saltos, pero no en camara lenta) y no se
+   desengancha de la musica ni de la animacion de la estrella. */
+function pintarFuegos(marca){
+  var an = window.innerWidth, al = window.innerHeight, i, p;
+  var ahora = marca || ahoraMs();
+  var paso = Math.min(3.5, Math.max(.2, (ahora - relojFx) / 16.667));
+  relojFx = ahora;
+  var seAcaba = ahora > finFuegos;
+
+  /* apaga poco a poco lo pintado antes: eso son las estelas */
+  fctx.globalCompositeOperation = "destination-out";
+  fctx.fillStyle = "rgba(0,0,0," + (1 - Math.pow(.72, paso)).toFixed(3) + ")";
+  fctx.fillRect(0, 0, an, al);
+
+  /* los cohetes y las brasas brillan sumando luz */
+  fctx.globalCompositeOperation = "lighter";
+  for (i = cohetes.length - 1; i >= 0; i--){
+    p = cohetes[i];
+    if (ahora < p.sale) continue;
+    p.x += p.vx * paso; p.y += p.vy * paso; p.vy += .3 * paso;
+    fctx.globalAlpha = .95;
+    fctx.drawImage(brasa(p.c), p.x - 10, p.y - 10, 20, 20);
+    if (p.vy > -2.2 || p.y < p.techo){
+      /* el ultimo es el de la traca final */
+      sembrarBrasas(p.x, p.y, p.grande ? 120 : 90, p.grande ? 11.5 : 9, p.c, p.grande || Math.random() < .5);
+      fogata(p.x, p.y);                       /* el destello del propio estallido */
+      cohetes.splice(i, 1);
+    }
+  }
+  for (i = brasas.length - 1; i >= 0; i--){
+    p = brasas[i];
+    p.x += p.vx * paso; p.y += p.vy * paso;
+    var freno = Math.pow(.986, paso);
+    p.vx *= freno; p.vy = p.vy * freno + p.g * paso;
+    p.vida -= p.baja * paso;
+    if (p.vida <= 0 || p.y > al + 40){ brasas.splice(i, 1); continue; }
+    fctx.globalAlpha = p.vida * .58;
+    var t = p.t * (.45 + p.vida * .55);
+    fctx.drawImage(brasa(p.c), p.x - t/2, p.y - t/2, t, t);
+  }
+
+  /* el confeti es papel, no luz */
+  fctx.globalCompositeOperation = "source-over";
+  fctx.globalAlpha = 1;
+  for (i = papeles.length - 1; i >= 0; i--){
+    p = papeles[i];
+    p.x += p.vx * paso; p.y += p.vy * paso;
+    var roce = Math.pow(.992, paso);
+    p.vx *= roce; p.vy = p.vy * roce + .3 * paso;
+    p.giro += p.vgiro * paso;
+    if (p.y > al + 40 || p.x < -60 || p.x > an + 60){ papeles.splice(i, 1); continue; }
+    fctx.save();
+    fctx.translate(p.x, p.y); fctx.rotate(p.giro);
+    fctx.fillStyle = p.color;
+    fctx.fillRect(-p.an/2, -p.al/2, p.an, p.al * Math.abs(Math.cos(p.giro)));
+    fctx.restore();
+  }
+
+  if (!seAcaba && (brasas.length || cohetes.length || papeles.length)){
+    requestAnimationFrame(pintarFuegos);
+  } else {
+    ardiendo = false;
+    brasas = []; cohetes = []; papeles = [];
+    fctx.setTransform(1,0,0,1,0,0);
+    fctx.clearRect(0, 0, lienzoFx.width, lienzoFx.height);
+    lienzoFx.hidden = true;
+  }
+}
+function aRGB(hex){
+  var n = parseInt(hex.replace("#",""), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
 /* ---------------- fogonazo: la super animacion, a pantalla completa ---------------- */
 var capaFx = document.getElementById("fogonazo"), tempFx = null, tempCuerpo = null;
+var capaNoche = document.getElementById("noche"), tempNoche = null;
 var quietud = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
 function icono(c){ return String.fromCodePoint(c); }
 var ASTRO_BIEN = icono(0x2B50), ASTRO_MAL = icono(0x1F494);
@@ -939,7 +1177,7 @@ var CHISPAS_BIEN = [0x2B50, 0x2728, 0x1F31F, 0x1F389, 0x2728, 0x1F38A].map(icono
 var CHISPAS_MAL  = [0x1F4A5, 0x1F5A4, 0x1F4A2, 0x1F494, 0x1F5A4].map(icono);
 var LLUVIA_BIEN  = [0x2B50, 0x2728, 0x1F31F, 0x1F388].map(icono);
 var LLUVIA_MAL   = [0x1F4A7, 0x1F5A4, 0x1F494, 0x1F4A2].map(icono);
-var GRITOS_BIEN  = ["¡MUY BIEN!", "¡GENIAL!", "¡BRAVO!", "¡CAMPEONA!"];
+var GRITOS_BIEN  = ["¡MUY BIEN!", "¡GENIAL!", "¡BRAVO!", "¡CAMPEONA!", "¡ASÍ SE HACE!"];
 var GRITOS_MAL   = ["¡OH, NO!", "¡VAYA...!", "¡UY!"];
 function alAzar(lista){ return lista[Math.floor(Math.random() * lista.length)]; }
 
@@ -962,17 +1200,21 @@ function fogonazo(tipo, ninaId){
   var gana = tipo === "gana";
   var an = window.innerWidth, al = window.innerHeight;
   var foco = focoDe(ninaId);
+  var nina = NINAS.filter(function(n){ return n.id === ninaId; })[0];
   capaFx.style.setProperty("--cx", Math.round(foco.x) + "px");
   capaFx.style.setProperty("--cy", Math.round(foco.y) + "px");
   capaFx.style.setProperty("--tinte", gana ? "rgba(247,201,72,.55)" : "rgba(224,87,79,.5)");
   capaFx.style.setProperty("--vivo",  gana ? "#f7c948" : "#e0574f");
   capaFx.style.setProperty("--letra", gana ? "#c98a06" : "#b9433c");
 
-  var html = gana ? '<span class="rayos"></span>' : '<span class="vineta"></span>';
+  var html = gana ? '<span class="relampago"></span><span class="rayos"></span>'
+                  : '<span class="vineta"></span>';
   html += '<span class="destello"></span>' +
           '<span class="onda"></span><span class="onda dos"></span><span class="onda tres"></span>' +
           '<span class="astro ' + (gana ? "gana" : "pierde") + '">' + (gana ? ASTRO_BIEN : ASTRO_MAL) + '</span>' +
-          '<span class="cartel">' + esc(alAzar(gana ? GRITOS_BIEN : GRITOS_MAL)) + '</span>';
+          '<span class="cartel"><b>' + esc(alAzar(gana ? GRITOS_BIEN : GRITOS_MAL)) + '</b>' +
+            (nina ? '<i>' + esc(nina.nombre.toUpperCase()) + '</i>' : '') + '</span>';
+  if (gana) html += '<span class="masuno">+1 ' + ASTRO_BIEN + '</span>';
 
   /* chispas: cruzan la pantalla entera desde el foco */
   var trozos = gana ? CHISPAS_BIEN : CHISPAS_MAL;
@@ -1014,7 +1256,19 @@ function fogonazo(tipo, ninaId){
   capaFx.innerHTML = html;
   capaFx.hidden = false;
   clearTimeout(tempFx);
-  tempFx = setTimeout(function(){ capaFx.hidden = true; capaFx.innerHTML = ""; }, 2500);
+  tempFx = setTimeout(function(){ capaFx.hidden = true; capaFx.innerHTML = ""; }, 2600);
+
+  /* los fuegos artificiales solo en la buena, y con la luz apagada */
+  if (gana){
+    if (capaNoche){
+      capaNoche.hidden = true;
+      void capaNoche.offsetWidth;          /* para que la animacion vuelva a empezar */
+      capaNoche.hidden = false;
+      clearTimeout(tempNoche);
+      tempNoche = setTimeout(function(){ capaNoche.hidden = true; }, 2550);
+    }
+    lanzarFuegos(foco, aRGB(nina ? nina.acento : "#f7c948"));
+  }
 
   /* la pagina de debajo tambien se entera */
   var cuerpo = document.body;
@@ -1025,7 +1279,7 @@ function fogonazo(tipo, ninaId){
   tempCuerpo = setTimeout(function(){ cuerpo.classList.remove("celebra", "sacude"); }, 900);
 
   try {
-    if (navigator.vibrate) navigator.vibrate(gana ? [22,50,22,50,90] : [130,70,60,50,180]);
+    if (navigator.vibrate) navigator.vibrate(gana ? [22,50,22,50,30,60,120] : [130,70,60,50,180]);
   } catch(err){}
 }
 

@@ -23,13 +23,18 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
 - **Pantalla para ellas** (botón 👀): vista grande de solo lectura, ordenada por quien va ganando y con medalla, sin botones de sumar ni restar;
   para salir hay que mantener pulsado.
 - Botones grandes por niña, DESHACER por niña, historial del día, sonidos y ajustes.
-- **Fogonazo a pantalla completa en cada toque.** Al verde: sol de rayos girando, estrella gigante
-  que ocupa media pantalla, cartel («¡MUY BIEN!», «¡BRAVO!»…), tres ondas expansivas, 34 chispas que
-  cruzan la pantalla, cortina de estrellas cayendo, la página da un botecito y suena una **fanfarria
-  de victoria de casi 2 s**. Al rojo, lo mismo del revés: la pantalla se oscurece desde los bordes,
-  corazón roto gigante que se sacude y se desploma, pedazos y lágrimas cayendo, **la página tiembla**
-  y suena un tromboncito triste que se hunde. El premio de las 5 ⭐ y quedarse a 0 ❤️ tienen sus
-  propias versiones, más largas. Se salta entero si el móvil pide menos movimiento.
+- **Traca de fuegos artificiales al dar la estrella.** Fogonazo blanco, sol de rayos, estrella
+  gigante que gira en 3D con su «+1», cartel con el nombre de la niña («¡BRAVO! PAULA») y, acto
+  seguido, **se apaga la luz**: la pantalla se hace noche y salen dos cañones de confeti desde las
+  esquinas y tres cohetes que suben, estallan con estela y truenan, el último en traca final. Es un
+  motor de partículas propio en `<canvas>` (brillo aditivo, estelas por borrado parcial) que **avanza
+  por reloj y no por fotograma**, así que en un móvil lento se ve a saltos pero dura lo mismo y no se
+  desengancha de la música; hay además un tope duro a los 3,4 s. La fanfarria lleva los truenos
+  sincronizados con los estallidos.
+- **Al rojo, lo contrario** (sin fuegos, claro): la pantalla se oscurece desde los bordes, corazón
+  roto gigante que se sacude y se desploma, pedazos y lágrimas cayendo, **la página tiembla** y suena
+  un tromboncito triste que se hunde. El premio de las 5 ⭐ y quedarse a 0 ❤️ tienen sus propias
+  versiones, más largas. Todo se salta entero si el móvil pide menos movimiento.
 - **Los dos móviles a la vez.** Cada acción es un evento con su identificador; el servidor se queda
   con la unión de lo que manda cada móvil, así que da igual quién apunte. Sin cobertura se apunta
   igual y se envía solo al recuperarla.
@@ -51,7 +56,7 @@ Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
 ```bash
 python make-icons.py                     # regenera los iconos de la PWA
 cd docs && python -m http.server 8765    # servir en local
-node test.js http://127.0.0.1:8765/      # 188 comprobaciones en Chrome con tamaño de iPhone
+node test.js http://127.0.0.1:8765/      # 197 comprobaciones en Chrome con tamaño de iPhone
 MOTOR=webkit node test.js <url>          # las mismas en WebKit (motor de Safari)
 node test.js https://aclasesor-bit.github.io/reto-del-viaje/   # comprobar lo publicado
 ```
