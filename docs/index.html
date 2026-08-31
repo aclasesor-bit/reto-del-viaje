@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>El Reto del Viaje</title>
+<title>El Súper Reto</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
 <meta name="theme-color" content="#fbf7f2">
 <meta name="description" content="Juego de comportamiento para Valeria, Alejandra y Paula.">
@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="El Reto">
+<meta name="apple-mobile-web-app-title" content="Súper Reto">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" href="./icon-192.png">
 <style>
@@ -528,7 +528,7 @@ body.sacude .envoltura{animation:sacudir .8s ease-out}
 <body>
 
 <header class="top">
-  <h1>El Reto del Viaje</h1>
+  <h1>El Súper Reto</h1>
   <button class="icono" id="btnEscaparate" type="button" aria-label="Enseñárselo a ellas">👀</button>
   <button class="icono" id="btnSonido" type="button" aria-label="Sonido">🔊</button>
   <button class="icono" id="btnAjustes" type="button" aria-label="Ajustes">⚙️</button>
@@ -1920,7 +1920,7 @@ function abrirCompartir(){
   document.getElementById("btnEnlace").addEventListener("click", function(){
     var enlace = enlaceDeFamilia(), b = document.getElementById("btnEnlace");
     if (navigator.share){
-      navigator.share({ title:"El Reto del Viaje", text:"Abre esto para apuntar tú también:", url:enlace }).catch(function(){});
+      navigator.share({ title:"El Súper Reto", text:"Abre esto para apuntar tú también:", url:enlace }).catch(function(){});
       return;
     }
     var listo = function(){ b.textContent = "✅ ENLACE COPIADO"; setTimeout(function(){ b.textContent = "📤 ENVIAR ENLACE AL OTRO MÓVIL"; }, 2500); };

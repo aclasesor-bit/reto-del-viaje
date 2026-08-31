@@ -750,7 +750,7 @@ async function esperarA(fn, ms, cada) {
     return r.ok ? await r.json() : null;
   });
   ok('el manifest carga', !!man);
-  ok('nombre correcto', man && man.name === 'El Reto del Viaje');
+  ok('nombre correcto', man && man.name === 'El Súper Reto');
   ok('modo standalone', man && man.display === 'standalone');
   ok('tiene iconos 192 y 512', man && man.icons.length >= 3);
   const iconos = await pag.evaluate(async () => {

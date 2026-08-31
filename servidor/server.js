@@ -1,4 +1,4 @@
-/* API de sincronizacion de "El Reto del Viaje".
+/* API de sincronizacion de "El Super Reto" (antes "El Reto del Viaje").
  *
  * Guarda, por codigo de familia, los eventos de cada dia (una buena accion o una
  * oportunidad perdida). Los dos moviles mandan lo suyo y se quedan con la union:

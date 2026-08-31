@@ -1,10 +1,15 @@
-# El Reto del Viaje ❤️⭐
+# El Súper Reto ❤️⭐
 
-Juego de comportamiento para el viaje en familia: Valeria, Alejandra y Paula.
+Juego de comportamiento del día a día para Valeria, Alejandra y Paula.
 Cada una empieza el día con 5 ❤️ (oportunidades) y va sumando ⭐ (buenas acciones).
 Al llegar a 0 ❤️ sale **CASTIGADA**; al llegar al objetivo de ⭐ salta el confeti y la **RECOMPENSA**.
 
 Publicado en GitHub Pages: https://aclasesor-bit.github.io/reto-del-viaje/
+
+> Nació como «El Reto del Viaje» para el viaje familiar de agosto de 2026 y se quedó para siempre.
+> **La URL y la clave de `localStorage` conservan el nombre viejo a propósito**: cambiarlas rompería
+> el icono ya instalado en las pantallas de inicio, los enlaces `?f=` ya compartidos y los datos
+> guardados en los dos móviles. Lo único que cambió es el nombre que se ve.
 
 ## Qué hace
 

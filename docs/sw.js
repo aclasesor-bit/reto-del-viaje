@@ -1,5 +1,5 @@
-/* El Reto del Viaje - service worker */
-const CACHE = 'reto-viaje-v14';
+/* El Súper Reto - service worker */
+const CACHE = 'reto-viaje-v15';
 const FILES = ['./', './index.html', './manifest.webmanifest',
                './icon-192.png', './icon-512.png', './icon-512-maskable.png',
                './apple-touch-icon.png', './favicon.png'];
